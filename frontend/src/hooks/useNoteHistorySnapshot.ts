@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useAppStore } from '../store'
 import type { EditorMode } from '../types'
 import {
@@ -29,7 +29,6 @@ export function useNoteHistorySnapshot({
   const lastSnapshotAtRef = useRef<number>(0)
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const noteIdRef = useRef(noteId)
-  noteIdRef.current = noteId
 
   const trySnapshot = useCallback(
     (targetNoteId: string, reason: HistorySnapshotReason, baseline: string) => {
@@ -60,7 +59,14 @@ export function useNoteHistorySnapshot({
   )
 
   const trySnapshotRef = useRef(trySnapshot)
-  trySnapshotRef.current = trySnapshot
+
+  useLayoutEffect(() => {
+    noteIdRef.current = noteId
+  }, [noteId])
+
+  useLayoutEffect(() => {
+    trySnapshotRef.current = trySnapshot
+  }, [trySnapshot])
 
   useEffect(() => {
     const n = useAppStore.getState().notes.find((x) => x.id === noteId)
@@ -92,9 +98,10 @@ export function useNoteHistorySnapshot({
     }, HISTORY_IDLE_SNAPSHOT_MS)
   }, [trySnapshot])
 
-  const onEditorModelUpdated = () => {
+  /** Stable ref — TipTap `useEditor` must not see a new function every render. */
+  const onEditorModelUpdated = useCallback(() => {
     scheduleIdleSnapshot()
-  }
+  }, [scheduleIdleSnapshot])
 
   useEffect(() => {
     const onVisibility = () => {
