@@ -1,4 +1,5 @@
 import type { EditorMode, Note, NoteVersion } from '../types'
+import { normalizeNoteForApp } from './noteNormalization'
 import { normalizePersistedNote } from './noteMigration'
 import {
   LEGACY_NOTES_KEY,
@@ -49,6 +50,10 @@ function isPersistedV1(value: unknown): value is PersistedAppStateV1 {
     const arr = map[k]
     if (!Array.isArray(arr) || !arr.every(isNoteVersion)) return false
   }
+  if ('currentNoteId' in o) {
+    const c = o.currentNoteId
+    if (c != null && typeof c !== 'string') return false
+  }
   return true
 }
 
@@ -67,6 +72,7 @@ function loadLegacyNotesOnly(): Note[] {
 export function loadPersistedState(): {
   notes: Note[]
   versionsByNoteId: Record<string, NoteVersion[]>
+  currentNoteId?: string | null
 } {
   const raw = localStorage.getItem(STORAGE_ROOT_KEY)
   if (raw != null) {
@@ -74,8 +80,11 @@ export function loadPersistedState(): {
       const parsed: unknown = JSON.parse(raw)
       if (isPersistedV1(parsed)) {
         return {
-          notes: parsed.notes.map(normalizePersistedNote),
+          notes: parsed.notes.map((n) =>
+            normalizeNoteForApp(normalizePersistedNote(n))
+          ),
           versionsByNoteId: parsed.versionsByNoteId,
+          currentNoteId: parsed.currentNoteId,
         }
       }
     } catch {
@@ -86,7 +95,9 @@ export function loadPersistedState(): {
   const legacy = loadLegacyNotesOnly()
   if (legacy.length > 0) {
     return {
-      notes: legacy.map(normalizePersistedNote),
+      notes: legacy.map((n) =>
+        normalizeNoteForApp(normalizePersistedNote(n))
+      ),
       versionsByNoteId: {},
     }
   }
@@ -97,11 +108,13 @@ export function loadPersistedState(): {
 export function savePersistedState(state: {
   notes: Note[]
   versionsByNoteId: Record<string, NoteVersion[]>
+  currentNoteId?: string | null
 }): void {
   const payload: PersistedAppStateV1 = {
     version: 1,
     notes: state.notes,
     versionsByNoteId: state.versionsByNoteId,
+    currentNoteId: state.currentNoteId,
   }
   localStorage.setItem(STORAGE_ROOT_KEY, JSON.stringify(payload))
   localStorage.removeItem(LEGACY_NOTES_KEY)
@@ -109,7 +122,7 @@ export function savePersistedState(state: {
 
 /** @deprecated Use savePersistedState — kept for any external callers */
 export function saveNotes(notes: Note[]): void {
-  savePersistedState({ notes, versionsByNoteId: {} })
+  savePersistedState({ notes, versionsByNoteId: {}, currentNoteId: null })
 }
 
 /** @deprecated Use loadPersistedState */
@@ -120,9 +133,15 @@ export function loadNotes(): Note[] {
 export function exportStateJson(state: {
   notes: Note[]
   versionsByNoteId: Record<string, NoteVersion[]>
+  currentNoteId?: string | null
 }): string {
   return JSON.stringify(
-    { version: 1 as const, notes: state.notes, versionsByNoteId: state.versionsByNoteId },
+    {
+      version: 1 as const,
+      notes: state.notes,
+      versionsByNoteId: state.versionsByNoteId,
+      currentNoteId: state.currentNoteId,
+    },
     null,
     2
   )
@@ -130,11 +149,21 @@ export function exportStateJson(state: {
 
 export function parseImportedStateJson(
   raw: string
-): { notes: Note[]; versionsByNoteId: Record<string, NoteVersion[]> } | null {
+): {
+  notes: Note[]
+  versionsByNoteId: Record<string, NoteVersion[]>
+  currentNoteId?: string | null
+} | null {
   try {
     const parsed: unknown = JSON.parse(raw)
     if (isPersistedV1(parsed)) {
-      return { notes: parsed.notes, versionsByNoteId: parsed.versionsByNoteId }
+      return {
+        notes: parsed.notes.map((n) =>
+          normalizeNoteForApp(normalizePersistedNote(n))
+        ),
+        versionsByNoteId: parsed.versionsByNoteId,
+        currentNoteId: parsed.currentNoteId,
+      }
     }
     if (
       parsed !== null &&
@@ -142,15 +171,28 @@ export function parseImportedStateJson(
       Array.isArray((parsed as { notes?: unknown }).notes) &&
       (parsed as { notes: unknown[] }).notes.every(isNote)
     ) {
+      const loose = parsed as {
+        notes: Note[]
+        versionsByNoteId?: Record<string, NoteVersion[]>
+        currentNoteId?: unknown
+      }
+      const c = loose.currentNoteId
+      const currentNoteId =
+        c === null || c === undefined
+          ? c
+          : typeof c === 'string'
+            ? c
+            : undefined
       return {
-        notes: (parsed as { notes: Note[] }).notes.map(normalizePersistedNote),
+        notes: loose.notes.map((n) =>
+          normalizeNoteForApp(normalizePersistedNote(n))
+        ),
         versionsByNoteId:
-          typeof (parsed as { versionsByNoteId?: unknown }).versionsByNoteId ===
-            'object' &&
-          (parsed as { versionsByNoteId?: unknown }).versionsByNoteId !== null
-            ? ((parsed as { versionsByNoteId: Record<string, NoteVersion[]> })
-                .versionsByNoteId ?? {})
+          typeof loose.versionsByNoteId === 'object' &&
+          loose.versionsByNoteId !== null
+            ? loose.versionsByNoteId
             : {},
+        ...(currentNoteId !== undefined ? { currentNoteId } : {}),
       }
     }
   } catch {

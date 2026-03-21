@@ -1,5 +1,6 @@
 /** Strip HTML to readable plain text for previews and diff (browser). */
 export function htmlToPlainText(html: string): string {
+  if (typeof html !== 'string') return ''
   if (typeof document === 'undefined') {
     return html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')

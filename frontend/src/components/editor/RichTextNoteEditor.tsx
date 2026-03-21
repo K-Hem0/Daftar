@@ -121,12 +121,27 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     }
     const n = latestNotes.find((x) => x.id === id)
     if (!n) return
-    const html = n.content || ''
+    const raw =
+      typeof n.content === 'string' && n.content.trim() !== ''
+        ? n.content
+        : '<p></p>'
+    const html = raw
     const current = editor.getHTML()
     if (current === html) return
-    editor.commands.setContent(html, { emitUpdate: false })
-    lastSnapRef.current = html
-  }, [editor, currentNoteId, note?.content])
+    try {
+      editor.commands.setContent(html, { emitUpdate: false })
+    } catch (err) {
+      console.warn(
+        '[RichTextNoteEditor] setContent failed; using empty paragraph',
+        err
+      )
+      editor.commands.setContent('<p></p>', { emitUpdate: false })
+      if (useAppStore.getState().currentNoteId === n.id) {
+        updateCurrentNoteContent('<p></p>')
+      }
+    }
+    lastSnapRef.current = editor.getHTML()
+  }, [editor, currentNoteId, note?.content, updateCurrentNoteContent])
 
   useEffect(() => {
     if (!editor) return
@@ -233,7 +248,16 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     : 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
   const maxW = maxWidthClass(editorMaxWidth)
 
-  if (!note) return null
+  if (!note) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8 pb-24 text-center">
+        <p className="max-w-[24rem] text-[13px] leading-relaxed text-slate-500 dark:text-slate-600/90">
+          This note is not available in the workspace. Choose another note in the
+          sidebar or create a new one.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

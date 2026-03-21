@@ -14,6 +14,8 @@ export type PersistedAppStateV1 = {
   notes: Note[]
   /** Parallel map: note id → version snapshots (newest last or first — see versionHistory helpers) */
   versionsByNoteId: Record<string, NoteVersion[]>
+  /** Optional since early v1 blobs; validated against `notes` on load */
+  currentNoteId?: string | null
 }
 
 export const STORAGE_ROOT_KEY = 'scholarly-notes-v1'

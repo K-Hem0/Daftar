@@ -7,6 +7,10 @@ import type {
   SidebarTab,
 } from '../types'
 import { getTemplateHtml, type NoteTemplateOptions } from '../lib/templates'
+import {
+  normalizeNoteForApp,
+  resolveCurrentNoteId,
+} from '../lib/noteNormalization'
 import { appendVersion } from '../lib/versionHistory'
 import { findNoteIdByTitle } from '../lib/wikiLinks'
 
@@ -19,7 +23,7 @@ export function createEmptyNote(
     template,
     options
   )
-  return {
+  return normalizeNoteForApp({
     id: crypto.randomUUID(),
     title,
     content: body,
@@ -28,7 +32,7 @@ export function createEmptyNote(
     folder,
     createdAt: now,
     updatedAt: now,
-  }
+  })
 }
 
 type AppState = {
@@ -60,7 +64,11 @@ type AppState = {
   /** Ensure a note exists for this wiki title; does not change the active note. Returns null if title is empty/invalid. */
   ensureNoteForWikiTitle: (title: string) => string | null
   restoreNoteVersion: (noteId: string, versionId: string) => void
-  importState: (notes: Note[], versionsByNoteId: Record<string, NoteVersion[]>) => void
+  importState: (
+    notes: Note[],
+    versionsByNoteId: Record<string, NoteVersion[]>,
+    currentNoteId?: string | null
+  ) => void
   resetAll: () => void
 }
 
@@ -84,7 +92,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   versionsByNoteId: {},
 
   addNote: (note) => {
-    const n = note ?? createEmptyNote('blank')
+    const raw = note ?? createEmptyNote('blank')
+    const n = normalizeNoteForApp(raw)
+    if (import.meta.env.DEV) {
+      console.debug('[addNote] normalized payload', n)
+    }
     set((s) => ({
       notes: [...s.notes, n],
       currentNoteId: n.id,
@@ -161,7 +173,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   addNoteFromTitle: (title) => {
     const trimmed = title.trim()
     const n = createEmptyNote('blank')
-    const note = { ...n, title: trimmed.length > 0 ? trimmed : 'Untitled' }
+    const note = normalizeNoteForApp({
+      ...n,
+      title: trimmed.length > 0 ? trimmed : 'Untitled',
+    })
     set((s) => ({
       notes: [...s.notes, note],
       currentNoteId: note.id,
@@ -176,7 +191,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const existing = findNoteIdByTitle(list, trimmed)
     if (existing) return existing
     const n = createEmptyNote('blank')
-    const note = { ...n, title: trimmed }
+    const note = normalizeNoteForApp({ ...n, title: trimmed })
     set((s) => ({ notes: [...s.notes, note] }))
     return note.id
   },
@@ -213,12 +228,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }),
 
-  importState: (notes, versionsByNoteId) =>
+  importState: (notes, versionsByNoteId, preferredCurrentId) => {
+    const normalized = notes.map((n) => normalizeNoteForApp(n))
     set({
-      notes,
+      notes: normalized,
       versionsByNoteId,
-      currentNoteId: notes.length > 0 ? notes[0]!.id : null,
-    }),
+      currentNoteId: resolveCurrentNoteId(normalized, preferredCurrentId),
+    })
+  },
 
   resetAll: () =>
     set({

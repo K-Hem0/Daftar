@@ -11,15 +11,16 @@ const WIKI_BRACKET = /\[\[([^\]]+)\]\]/g
 
 /** Extract `[[title]]` and `data-wiki-title` targets from note HTML. */
 export function extractWikiTitlesFromHtml(html: string): string[] {
+  const safe = typeof html === 'string' ? html : ''
   const out = new Set<string>()
   let m: RegExpExecArray | null
   const reAttr = new RegExp(WIKI_ATTR.source, WIKI_ATTR.flags)
-  while ((m = reAttr.exec(html)) !== null) {
+  while ((m = reAttr.exec(safe)) !== null) {
     const t = m[1]?.trim()
     if (t) out.add(t)
   }
   const reBr = new RegExp(WIKI_BRACKET.source, WIKI_BRACKET.flags)
-  while ((m = reBr.exec(html)) !== null) {
+  while ((m = reBr.exec(safe)) !== null) {
     const t = m[1]?.trim()
     if (t) out.add(t)
   }
@@ -51,7 +52,7 @@ export function computeBacklinks(
   const results: { id: string; title: string }[] = []
   for (const n of notes) {
     if (n.id === currentNoteId) continue
-    const titles = extractWikiTitlesFromHtml(n.content)
+    const titles = extractWikiTitlesFromHtml(n.content ?? '')
     const linksHere = titles.some((t) => normalizeTitleKey(t) === titleKey)
     if (linksHere) results.push({ id: n.id, title: n.title })
   }
@@ -104,7 +105,7 @@ export function computeBacklinksWithSnippets(
     const n = notes.find((x) => x.id === b.id)
     const snippet = n
       ? snippetAroundLinkToTitle(
-          n.content,
+          n.content ?? '',
           current.title,
           n.editorMode ?? 'rich'
         )

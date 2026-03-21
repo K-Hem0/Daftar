@@ -301,13 +301,14 @@ function NotesSection() {
 function AdvancedSection() {
   const notes = useAppStore((s) => s.notes)
   const versionsByNoteId = useAppStore((s) => s.versionsByNoteId)
+  const currentNoteId = useAppStore((s) => s.currentNoteId)
   const importState = useAppStore((s) => s.importState)
   const resetAll = useAppStore((s) => s.resetAll)
   const fileRef = useRef<HTMLInputElement>(null)
   const [resetBusy, setResetBusy] = useState(false)
 
   const onExport = useCallback(() => {
-    const json = exportStateJson({ notes, versionsByNoteId })
+    const json = exportStateJson({ notes, versionsByNoteId, currentNoteId })
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -315,7 +316,7 @@ function AdvancedSection() {
     a.download = `scholarly-notes-export-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [notes, versionsByNoteId])
+  }, [notes, versionsByNoteId, currentNoteId])
 
   const onImportFile: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const file = e.target.files?.[0]
@@ -325,10 +326,12 @@ function AdvancedSection() {
       const text = String(reader.result ?? '')
       const parsed = parseImportedStateJson(text)
       if (parsed) {
-        importState(parsed.notes, parsed.versionsByNoteId)
+        importState(parsed.notes, parsed.versionsByNoteId, parsed.currentNoteId)
+        const s = useAppStore.getState()
         savePersistedState({
-          notes: parsed.notes,
-          versionsByNoteId: parsed.versionsByNoteId,
+          notes: s.notes,
+          versionsByNoteId: s.versionsByNoteId,
+          currentNoteId: s.currentNoteId,
         })
       }
       e.target.value = ''
@@ -356,7 +359,11 @@ function AdvancedSection() {
       localStorage.removeItem(STORAGE_ROOT_KEY)
       localStorage.removeItem('notes')
       resetAll()
-      savePersistedState({ notes: [], versionsByNoteId: {} })
+      savePersistedState({
+        notes: [],
+        versionsByNoteId: {},
+        currentNoteId: null,
+      })
     } finally {
       setResetBusy(false)
     }

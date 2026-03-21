@@ -60,7 +60,10 @@ export function EditorPane() {
     )
   }
 
-  const tagsStr = currentNote.tags.join(', ')
+  const tags = Array.isArray(currentNote.tags) ? currentNote.tags : []
+  const folder =
+    typeof currentNote.folder === 'string' ? currentNote.folder : ''
+  const tagsStr = tags.join(', ')
   const metaClass =
     'w-full border-0 bg-transparent px-0 py-0.5 text-[12px] leading-snug text-slate-700/90 placeholder:text-slate-400/50 outline-none transition-[background,color] duration-100 ' +
     'rounded-sm hover:bg-slate-100/30 focus:bg-slate-100/35 focus:outline-none focus:ring-0 ' +
@@ -79,7 +82,7 @@ export function EditorPane() {
             ref={titleInputRef}
             id="note-title"
             type="text"
-            value={currentNote.title}
+            value={currentNote.title ?? ''}
             onChange={(e) => updateCurrentNoteTitle(e.target.value)}
             placeholder="Untitled"
             className="w-full border-0 bg-transparent text-[1.875rem] font-semibold leading-[1.15] tracking-[-0.035em] text-slate-900 placeholder:text-slate-400/75 focus:outline-none focus:ring-0 dark:text-slate-50 dark:placeholder:text-slate-600/75 sm:text-[2rem]"
@@ -118,7 +121,7 @@ export function EditorPane() {
               <input
                 id="note-folder"
                 type="text"
-                value={currentNote.folder}
+                value={folder}
                 onChange={(e) => updateCurrentNoteFolder(e.target.value)}
                 placeholder="Inbox"
                 list={folderListId}

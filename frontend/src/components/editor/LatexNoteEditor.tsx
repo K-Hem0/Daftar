@@ -92,10 +92,19 @@ export function LatexNoteEditor({ noteId }: LatexNoteEditorProps) {
 
   const onExport = useCallback(() => {
     if (!note) return
-    downloadTexFile(note.title, note.content)
+    downloadTexFile(note.title ?? 'Untitled', note.content ?? '')
   }, [note])
 
-  if (!note) return null
+  if (!note) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8 pb-24 text-center">
+        <p className="max-w-[24rem] text-[13px] leading-relaxed text-slate-500 dark:text-slate-600/90">
+          This note is not available in the workspace. Choose another note in the
+          sidebar or create a new one.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -139,7 +148,7 @@ export function LatexNoteEditor({ noteId }: LatexNoteEditorProps) {
             </div>
             <div className="latex-cm-root min-h-[min(52dvh,520px)] w-full min-w-0 overflow-hidden rounded-xl border border-slate-200/40 bg-slate-50/80 shadow-sm shadow-slate-900/[0.03] ring-1 ring-inset ring-slate-200/25 dark:border-white/[0.08] dark:bg-[#0c0d12] dark:shadow-none dark:ring-white/[0.04]">
               <CodeMirror
-                value={note.content}
+                value={note.content ?? ''}
                 height="520px"
                 extensions={extensions}
                 onChange={onChange}
@@ -159,7 +168,7 @@ export function LatexNoteEditor({ noteId }: LatexNoteEditorProps) {
                 'dark:border-white/[0.08] dark:bg-[#12131a]/90 dark:shadow-none dark:ring-white/[0.04]'
               )}
             >
-              <LatexMathPreview source={note.content} />
+              <LatexMathPreview source={note.content ?? ''} />
               <p className="mt-4 border-t border-slate-200/50 pt-3 text-[10px] leading-snug text-slate-500 dark:border-white/[0.06] dark:text-slate-600/90">
                 Full document preview (PDF / non-math LaTeX) can be wired here later;
                 equation blocks above use KaTeX delimiters: $…$, $$…$$, \(…\), […].
