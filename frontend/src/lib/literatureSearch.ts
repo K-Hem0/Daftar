@@ -49,6 +49,11 @@ function notePlainBody(note: Note): string {
   return stripHtml(note.content)
 }
 
+/** Plain note body for sidecar APIs (e.g. Gemini): strips HTML in rich mode. */
+export function plainNoteBodyForApi(note: Note): string {
+  return notePlainBody(note)
+}
+
 /** Lexical tie to user text: at most one extra token. */
 const MAX_BOOST_TOKENS_LEXICAL = 1
 
@@ -684,6 +689,49 @@ function paperUrl(p: SemanticScholarPaper): string {
 /** External link for a search/similar card: open-access PDF, API URL, or Semantic Scholar. */
 export function semanticScholarPaperOpenUrl(p: SemanticScholarPaper): string {
   return paperUrl(p)
+}
+
+/**
+ * Best-effort paper fields for POST /api/gemini/paper-relevance (backend clips further).
+ */
+export function semanticScholarPaperForGeminiRelevance(
+  p: SemanticScholarPaper
+): {
+  title: string
+  abstract: string
+  authors: string[]
+  year: number | null
+  venue: string
+  url: string
+} {
+  const title = typeof p.title === 'string' ? p.title.trim() : ''
+  const abstract =
+    typeof p.abstract === 'string' && p.abstract.trim().length > 0
+      ? p.abstract.trim()
+      : ''
+  const authors = (p.authors ?? [])
+    .map((a) => authorName(a).trim())
+    .filter(Boolean)
+  const year =
+    typeof p.year === 'number' && Number.isFinite(p.year) ? p.year : null
+  const venue = typeof p.venue === 'string' ? p.venue.trim() : ''
+  let url = paperUrl(p).trim()
+  if (!url && p.externalIds && typeof p.externalIds === 'object') {
+    const doi =
+      typeof p.externalIds.DOI === 'string' ? p.externalIds.DOI.trim() : ''
+    const ax =
+      typeof p.externalIds.ArXiv === 'string' ? p.externalIds.ArXiv.trim() : ''
+    if (doi) url = `https://doi.org/${encodeURIComponent(doi)}`
+    else if (ax) url = `https://arxiv.org/abs/${encodeURIComponent(ax)}`
+  }
+  return {
+    title,
+    abstract,
+    authors,
+    year,
+    venue,
+    url,
+  }
 }
 
 export function semanticScholarPaperToReference(p: SemanticScholarPaper): Reference | null {
