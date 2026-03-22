@@ -64,8 +64,8 @@ export const NOTE_TEMPLATE_DEFINITIONS: NoteTemplateDefinition[] = [
     tags: [],
     build: () => ({
       title: 'Untitled',
-      editorMode: 'latex',
-      body: '',
+      editorMode: 'rich',
+      body: '<p></p>',
     }),
   },
   {

@@ -38,6 +38,7 @@ export function AppShell({ left, editor, right }: AppShellProps) {
   const setRightPaneWidthPx = useSettingsStore((s) => s.setRightPaneWidthPx)
   const shellRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState<'left' | 'right' | null>(null)
+  const focusTransitionPhase = useSettingsStore((s) => s.focusTransitionPhase)
 
   const applyClamp = useCallback(() => {
     const el = shellRef.current
@@ -249,6 +250,13 @@ export function AppShell({ left, editor, right }: AppShellProps) {
     setRightPaneWidthPx,
   ])
 
+  const contentOpacity =
+    focusTransitionPhase === 'fadeOut'
+      ? 'opacity-60'
+      : focusTransitionPhase === 'fadeIn'
+        ? 'opacity-100'
+        : 'opacity-100'
+
   return (
     <div
       className={cn(
@@ -258,6 +266,12 @@ export function AppShell({ left, editor, right }: AppShellProps) {
         'dark:text-slate-200/95 dark:selection:bg-sky-500/20 dark:selection:text-slate-50'
       )}
     >
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col transition-opacity duration-[350ms] ease-in-out',
+          contentOpacity
+        )}
+      >
       {distractionFree ? (
         <header
           className={cn(
@@ -270,7 +284,7 @@ export function AppShell({ left, editor, right }: AppShellProps) {
           <button
             type="button"
             onClick={() =>
-              useSettingsStore.getState().setDistractionFree(false)
+              useSettingsStore.getState().setDistractionFreeWithTransition(false)
             }
             className={cn(
               'rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors duration-150',
@@ -430,6 +444,7 @@ export function AppShell({ left, editor, right }: AppShellProps) {
             {editor}
           </main>
         )}
+      </div>
       </div>
 
       <SettingsModal />

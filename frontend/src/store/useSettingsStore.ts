@@ -25,6 +25,8 @@ export type SettingsState = {
   editorMaxWidth: EditorMaxWidth
   lineFocus: boolean
   distractionFree: boolean
+  /** Transient: 'idle' | 'fadeOut' | 'fadeIn' for focus-mode transition */
+  focusTransitionPhase: 'idle' | 'fadeOut' | 'fadeIn'
   defaultTemplate: NoteTemplateId
   sortNotes: NoteSort
   confirmBeforeDelete: boolean
@@ -41,6 +43,8 @@ export type SettingsState = {
   setEditorMaxWidth: (v: EditorMaxWidth) => void
   setLineFocus: (v: boolean) => void
   setDistractionFree: (v: boolean) => void
+  /** Toggle focus mode with a crossfade transition */
+  setDistractionFreeWithTransition: (v: boolean) => void
   setDefaultTemplate: (v: NoteTemplateId) => void
   setSortNotes: (v: NoteSort) => void
   setConfirmBeforeDelete: (v: boolean) => void
@@ -70,6 +74,7 @@ const defaults: Omit<
   | 'setRightPaneWidthPx'
   | 'resetPaneWidths'
   | 'setSettingsOpen'
+  | 'setDistractionFreeWithTransition'
 > = {
   themePreference: 'system',
   colorScheme: 'default',
@@ -77,6 +82,7 @@ const defaults: Omit<
   editorMaxWidth: 'medium',
   lineFocus: false,
   distractionFree: false,
+  focusTransitionPhase: 'idle',
   defaultTemplate: 'blank',
   sortNotes: 'updated',
   confirmBeforeDelete: true,
@@ -210,6 +216,21 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setDistractionFree: (distractionFree) => {
     set({ distractionFree })
     persist(get())
+  },
+
+  setDistractionFreeWithTransition: (target) => {
+    const current = get().distractionFree
+    if (target === current) return
+    set({ focusTransitionPhase: 'fadeOut' })
+    const step2 = () => {
+      set({ distractionFree: target, focusTransitionPhase: 'fadeIn' })
+      persist(get())
+      setTimeout(step3, 350)
+    }
+    const step3 = () => {
+      set({ focusTransitionPhase: 'idle' })
+    }
+    setTimeout(step2, 350)
   },
 
   setDefaultTemplate: (defaultTemplate) => {

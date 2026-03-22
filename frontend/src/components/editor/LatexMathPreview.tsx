@@ -1,9 +1,6 @@
-import { useEffect, useRef } from 'react'
-import MarkdownIt from 'markdown-it'
+import { useEffect, useRef, useState } from 'react'
+import { markdownToHtml } from '../../lib/markdownToHtml'
 import { cn } from '../../lib/cn'
-import renderMathInElement from 'katex/contrib/auto-render'
-
-const md = new MarkdownIt({ html: true }) // allows <u> for underline
 
 type LatexMathPreviewProps = {
   source: string
@@ -11,30 +8,45 @@ type LatexMathPreviewProps = {
 }
 
 /**
- * Renders markdown + LaTeX. Converts markdown to HTML, then KaTeX renders math in $…$, $$…$$, etc.
+ * Renders markdown + LaTeX via remark-math + rehype-katex.
+ * Headings become inline spans; math rendered with KaTeX.
  */
 export function LatexMathPreview({ source, className }: LatexMathPreviewProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const [html, setHtml] = useState<string>('')
+  const [err, setErr] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setErr(false)
+    markdownToHtml(source)
+      .then((h) => {
+        if (!cancelled) setHtml(h)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setErr(true)
+          setHtml('')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [source])
 
   useEffect(() => {
     const el = ref.current
-    if (!el) return
-    try {
-      el.innerHTML = md.render(source)
-      renderMathInElement(el, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false },
-          { left: '\\(', right: '\\)', display: false },
-          { left: '\\[', right: '\\]', display: true },
-        ],
-        throwOnError: false,
-        strict: 'ignore',
-      })
-    } catch {
-      el.textContent = source
-    }
-  }, [source])
+    if (!el || err) return
+    el.innerHTML = html
+  }, [html, err])
+
+  if (err) {
+    return (
+      <div className={cn('text-sm text-red-500', className)}>
+        Failed to render preview
+      </div>
+    )
+  }
 
   return (
     <div

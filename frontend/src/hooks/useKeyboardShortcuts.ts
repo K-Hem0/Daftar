@@ -98,7 +98,7 @@ export function useKeyboardShortcuts() {
                 : 3
           e.preventDefault()
           e.stopPropagation()
-          ed.chain().focus().toggleHeading({ level }).run()
+          ed.chain().focus().toggleInlineHeading(level).run()
           return
         }
       }
@@ -170,7 +170,7 @@ export function useKeyboardShortcuts() {
         e.preventDefault()
         e.stopPropagation()
         const s = useSettingsStore.getState()
-        s.setDistractionFree(!s.distractionFree)
+        s.setDistractionFreeWithTransition(!s.distractionFree)
         return
       }
     }

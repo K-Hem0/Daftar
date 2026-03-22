@@ -62,6 +62,16 @@ const server = http.createServer(async (req, res) => {
         'paperId,title,authors,year,abstract,url,citationCount,venue,openAccessPdf,externalIds'
       const path = `/graph/v1/paper/search?query=${encodeURIComponent(q)}&limit=${encodeURIComponent(limit)}&fields=${encodeURIComponent(fields)}`
       const { status, body } = await ssFetch(path)
+      if (status === 429) {
+        res.writeHead(429, { 'Content-Type': 'application/json' })
+        res.end(
+          JSON.stringify({
+            error:
+              'Semantic Scholar rate limit exceeded. Add SEMANTIC_SCHOLAR_API_KEY to .env.local for higher limits (get a free key at semanticscholar.org/product/api).',
+          })
+        )
+        return
+      }
       res.writeHead(status, { 'Content-Type': 'application/json' })
       res.end(body)
       return
@@ -79,6 +89,16 @@ const server = http.createServer(async (req, res) => {
         'paperId,title,authors,year,abstract,url,citationCount,venue,openAccessPdf'
       const path = `/recommendations/v1/papers/forpaper/${encodeURIComponent(id)}?limit=${encodeURIComponent(limit)}&fields=${encodeURIComponent(fields)}`
       const { status, body } = await ssFetch(path)
+      if (status === 429) {
+        res.writeHead(429, { 'Content-Type': 'application/json' })
+        res.end(
+          JSON.stringify({
+            error:
+              'Semantic Scholar rate limit exceeded. Add SEMANTIC_SCHOLAR_API_KEY to .env.local for higher limits (get a free key at semanticscholar.org/product/api).',
+          })
+        )
+        return
+      }
       res.writeHead(status, { 'Content-Type': 'application/json' })
       res.end(body)
       return

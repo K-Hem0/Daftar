@@ -1,5 +1,13 @@
 import type { Note, Reference } from '../types'
 
+/** API base for literature backend. Use localhost when in Electron (file://) or no proxy. */
+function getApiBase(): string {
+  if (typeof window === 'undefined') return 'http://localhost:8787'
+  const o = window.location.origin
+  if (!o || o === 'null' || o.startsWith('file:')) return 'http://localhost:8787'
+  return o
+}
+
 /** Max words pulled from the open note title when boosting a search query. */
 export const NOTE_CONTEXT_TITLE_WORDS = 12
 /** Max words pulled from the open note body when boosting a search query. */
@@ -712,7 +720,8 @@ export function referenceOpenUrl(r: Reference): string {
 }
 
 async function getJson<T>(path: string): Promise<T> {
-  const url = new URL(path, window.location.origin)
+  const base = getApiBase()
+  const url = new URL(path.startsWith('/') ? path : '/' + path, base)
   const r = await fetch(url.toString())
   const text = await r.text()
   let body: unknown
@@ -740,7 +749,7 @@ export async function searchPapers(
 ): Promise<PaperSearchResponse> {
   const q = query.trim()
   if (!q) return { data: [] }
-  const u = new URL('/api/paper-search', window.location.origin)
+  const u = new URL('/api/paper-search', getApiBase())
   u.searchParams.set('query', q)
   u.searchParams.set('limit', String(limit))
   return getJson<PaperSearchResponse>(u.pathname + u.search)
@@ -750,7 +759,7 @@ export async function fetchRecommendations(
   paperId: string,
   limit = 10
 ): Promise<SemanticScholarPaper[]> {
-  const u = new URL('/api/paper-recommendations', window.location.origin)
+  const u = new URL('/api/paper-recommendations', getApiBase())
   u.searchParams.set('paperId', paperId)
   u.searchParams.set('limit', String(limit))
   const raw = await getJson<unknown>(u.pathname + u.search)

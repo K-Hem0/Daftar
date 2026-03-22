@@ -3,7 +3,7 @@ import { useAppStore } from '../../store'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { cn } from '../../lib/cn'
 import { shortcutNewNote, shortcutTemplatePicker } from '../../lib/platformKeys'
-import { LatexNoteEditor } from './LatexNoteEditor'
+import { RichTextNoteEditor } from './RichTextNoteEditor'
 
 export function EditorPane() {
   const currentNoteId = useAppStore((s) => s.currentNoteId)
@@ -147,7 +147,7 @@ export function EditorPane() {
           </div>
         </div>
 
-        <LatexNoteEditor noteId={currentNote.id} />
+        <RichTextNoteEditor noteId={currentNote.id} />
       </div>
     </div>
   )

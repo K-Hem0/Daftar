@@ -333,6 +333,52 @@ code {
   margin: 0.25rem 0;
 }
 
+/* Inline headings (Notion-style) — STRICT: no block, no spacing */
+.heading {
+  display: inline !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2;
+  font-weight: 700;
+}
+.heading-1 {
+  font-size: 2.2rem !important;
+}
+.heading-2 {
+  font-size: 1.8rem !important;
+}
+.heading-3 {
+  font-size: 1.5rem !important;
+}
+/* Remove margin from paragraph wrapping headings */
+p:has(.heading) {
+  margin: 0 !important;
+}
+
+/* Block LaTeX — centered, no extra vertical spacing */
+.katex-display {
+  margin: 0 !important;
+}
+
+.notes-editor [data-type="block-math"],
+.notes-editor .tiptap-mathematics-render[data-type="block-math"] {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  text-align: center;
+  display: block;
+}
+.notes-editor [data-type="block-math"] .block-math-inner,
+.notes-editor [data-type="block-math"] .katex-display {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block;
+  text-align: center;
+}
+.notes-editor [data-type="inline-math"] {
+  margin: 0 !important;
+}
+
 /* TipTap placeholder (empty blocks) */
 .notes-editor .ProseMirror p.is-empty::before {
   content: attr(data-placeholder);
@@ -527,6 +573,15 @@ html:not(.dark) .latex-math-preview .katex {
   overflow: visible;
 }
 
+/* Block math in preview — centered, no extra vertical spacing */
+.latex-math-preview .katex-display,
+.latex-preview-panel .katex-display {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center;
+  display: block;
+}
+
 /* LaTeX / markdown preview — override global h1/h2; doc-appropriate sizing and spacing */
 .latex-math-preview h1 {
   font-size: 1.5rem;
@@ -589,6 +644,24 @@ html:not(.dark) .latex-math-preview h4 {
 .latex-math-preview li {
   margin: 0.25rem 0;
   display: list-item;
+}
+
+/* TipTap math in editor — inline and block math nodes */
+.notes-editor .tiptap-mathematics-render {
+  overflow: visible;
+}
+.notes-editor .tiptap-mathematics-render--editable {
+  cursor: pointer;
+  border-radius: 2px;
+}
+.notes-editor .tiptap-mathematics-render--editable:hover {
+  background: rgb(148 163 184 / 0.12);
+}
+.dark .notes-editor .tiptap-mathematics-render--editable:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+html:not(.dark) .notes-editor .tiptap-mathematics-render .katex {
+  color: rgb(51 65 85);
 }
 
 /* TipTap slash menu (tippy) — chrome only; content is our panel. */

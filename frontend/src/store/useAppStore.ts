@@ -12,6 +12,10 @@ import {
   resolveCurrentNoteId,
 } from '../lib/noteNormalization'
 import { appendVersion } from '../lib/versionHistory'
+import {
+  latexMarkdownToHtml,
+  looksLikeLatexOrMarkdown,
+} from '../lib/latexToHtml'
 import { findNoteIdByTitle } from '../lib/wikiLinks'
 
 export function createEmptyNote(
@@ -64,7 +68,7 @@ type AppState = {
   addNoteFromTitle: (title: string) => void
   /** Ensure a note exists for this wiki title; does not change the active note. Returns null if title is empty/invalid. */
   ensureNoteForWikiTitle: (title: string) => string | null
-  restoreNoteVersion: (noteId: string, versionId: string) => void
+  restoreNoteVersion: (noteId: string, versionId: string) => void | Promise<void>
   importState: (
     notes: Note[],
     versionsByNoteId: Record<string, NoteVersion[]>,
@@ -77,7 +81,9 @@ type AppState = {
 function patchCurrentNote(
   notes: Note[],
   currentNoteId: string | null,
-  patch: Partial<Pick<Note, 'title' | 'content' | 'tags' | 'folder'>>
+  patch: Partial<
+    Pick<Note, 'title' | 'content' | 'tags' | 'folder' | 'editorMode'>
+  >
 ): Note[] {
   if (!currentNoteId) return notes
   const now = new Date().toISOString()
@@ -133,9 +139,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCurrentNoteId: (id) => set({ currentNoteId: id }),
 
   updateCurrentNoteContent: (content) =>
-    set((s) => ({
-      notes: patchCurrentNote(s.notes, s.currentNoteId, { content }),
-    })),
+    set((s) => {
+      const note =
+        s.currentNoteId != null
+          ? s.notes.find((n) => n.id === s.currentNoteId)
+          : null
+      const patch: Partial<Pick<Note, 'content' | 'editorMode'>> = {
+        content,
+      }
+      if (note?.editorMode === 'latex') {
+        patch.editorMode = 'rich'
+      }
+      return { notes: patchCurrentNote(s.notes, s.currentNoteId, patch) }
+    }),
 
   updateCurrentNoteTitle: (title) =>
     set((s) => ({
@@ -224,37 +240,40 @@ export const useAppStore = create<AppState>((set, get) => ({
     return note.id
   },
 
-  restoreNoteVersion: (noteId, versionId) =>
-    set((s) => {
-      const versions = s.versionsByNoteId[noteId] ?? []
-      const v = versions.find((x) => x.id === versionId)
-      if (!v) return s
-      const note = s.notes.find((n) => n.id === noteId)
-      if (!note) return s
-      if (note.content === v.content) return s
+  restoreNoteVersion: async (noteId, versionId) => {
+    const s = get()
+    const versions = s.versionsByNoteId[noteId] ?? []
+    const v = versions.find((x) => x.id === versionId)
+    if (!v) return
+    const note = s.notes.find((n) => n.id === noteId)
+    if (!note) return
+    if (note.content === v.content) return
 
-      const existing = s.versionsByNoteId[noteId]
-      const nextList = appendVersion(
-        existing,
-        v.content,
-        note.content,
-        note.title
-      )
+    let restoredContent = v.content
+    if (looksLikeLatexOrMarkdown(restoredContent)) {
+      restoredContent = await latexMarkdownToHtml(restoredContent)
+    }
 
-      const now = new Date().toISOString()
-      const notes = s.notes.map((n) =>
+    const existing = s.versionsByNoteId[noteId]
+    const nextList = appendVersion(
+      existing,
+      v.content,
+      note.content,
+      note.title
+    )
+    const now = new Date().toISOString()
+    set({
+      notes: s.notes.map((n) =>
         n.id === noteId
-          ? { ...n, content: v.content, updatedAt: now }
+          ? { ...n, content: restoredContent, editorMode: 'rich' as const, updatedAt: now }
           : n
-      )
-      return {
-        notes,
-        versionsByNoteId: {
-          ...s.versionsByNoteId,
-          [noteId]: nextList,
-        },
-      }
-    }),
+      ),
+      versionsByNoteId: {
+        ...s.versionsByNoteId,
+        [noteId]: nextList,
+      },
+    })
+  },
 
   importState: (notes, versionsByNoteId, preferredCurrentId, referencesByNoteId) => {
     const normalized = notes.map((n) => normalizeNoteForApp(n))

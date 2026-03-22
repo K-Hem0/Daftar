@@ -198,7 +198,7 @@ function EditorSection() {
   const lineFocus = useSettingsStore((s) => s.lineFocus)
   const setLineFocus = useSettingsStore((s) => s.setLineFocus)
   const distractionFree = useSettingsStore((s) => s.distractionFree)
-  const setDf = useSettingsStore((s) => s.setDistractionFree)
+  const setDf = useSettingsStore((s) => s.setDistractionFreeWithTransition)
 
   return (
     <section className="space-y-4">

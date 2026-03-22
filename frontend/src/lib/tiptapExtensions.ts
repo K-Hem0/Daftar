@@ -2,15 +2,20 @@ import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
 import { TextStyleKit } from '@tiptap/extension-text-style/text-style-kit'
+import { Mathematics } from '@tiptap/extension-mathematics'
 import { WikiLink } from './wikiLinkExtension'
 import { SlashCommandExtension } from './slashCommandExtension'
 import { WikiLinkSuggestionExtension } from './wikiLinkSuggestionExtension'
 import { LinkKeyboardShortcut } from './tiptapLinkShortcut'
+import { HashtagHeadingExtension } from './hashtagHeadingExtension'
+import { InlineHeadingExtension } from './inlineHeadingExtension'
+import { SimpleInlineMathInputRule } from './simpleInlineMathInputRule'
+import { BlockMathInputRule } from './blockMathInputRule'
 
 export function createEditorExtensions() {
   return [
     StarterKit.configure({
-      heading: { levels: [1, 2, 3] },
+      heading: false,
       link: {
         openOnClick: false,
         autolink: true,
@@ -29,12 +34,19 @@ export function createEditorExtensions() {
       textStyle: {},
     }),
     TextAlign.configure({
-      types: ['heading', 'paragraph'],
+      types: ['paragraph'],
       alignments: ['left', 'center', 'right', 'justify'],
     }),
     Placeholder.configure({
       placeholder: 'Start writing…',
     }),
+    Mathematics.configure({
+      katexOptions: { throwOnError: false, strict: 'ignore' },
+    }),
+    BlockMathInputRule,
+    SimpleInlineMathInputRule,
+    InlineHeadingExtension,
+    HashtagHeadingExtension,
     WikiLink,
     WikiLinkSuggestionExtension,
     SlashCommandExtension,

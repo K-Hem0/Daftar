@@ -38,7 +38,7 @@ export const SLASH_ITEMS: SlashMenuItem[] = [
     run: (editor, range) => {
       editor.chain().focus().deleteRange(range).run()
       clearBlockModes(editor)
-      editor.chain().focus().setHeading({ level: 1 }).run()
+      editor.chain().focus().setInlineHeading(1).run()
     },
   },
   {
@@ -49,7 +49,7 @@ export const SLASH_ITEMS: SlashMenuItem[] = [
     run: (editor, range) => {
       editor.chain().focus().deleteRange(range).run()
       clearBlockModes(editor)
-      editor.chain().focus().setHeading({ level: 2 }).run()
+      editor.chain().focus().setInlineHeading(2).run()
     },
   },
   {
@@ -60,7 +60,7 @@ export const SLASH_ITEMS: SlashMenuItem[] = [
     run: (editor, range) => {
       editor.chain().focus().deleteRange(range).run()
       clearBlockModes(editor)
-      editor.chain().focus().setHeading({ level: 3 }).run()
+      editor.chain().focus().setInlineHeading(3).run()
     },
   },
   {

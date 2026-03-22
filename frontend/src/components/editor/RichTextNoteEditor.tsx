@@ -1,10 +1,13 @@
 import { EditorContent, useEditor } from '@tiptap/react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '../../store'
 import { useUiStore } from '../../store/useUiStore'
 import { createEditorExtensions } from '../../lib/tiptapExtensions'
-import { EditorToolbar } from './EditorToolbar'
+import { EditorContextMenu } from './EditorContextMenu'
+import { EditorMinibar } from './EditorMinibar'
 import { findNoteIdByTitle } from '../../lib/wikiLinks'
+import { latexMarkdownToHtml } from '../../lib/latexToHtml'
+import { transformBlockHeadingsToInline } from '../../lib/transformBlockHeadingsToInline'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { cn } from '../../lib/cn'
 import { registerEditorForShortcuts } from '../../lib/editorShortcutBridge'
@@ -17,9 +20,6 @@ const EDITOR_BODY_BASE =
   '[&_ul]:my-[0.85em] [&_ol]:my-[0.85em] [&_ul]:pl-[1.35em] [&_ol]:pl-[1.45em] ' +
   '[&_li]:my-1 [&_li]:marker:text-slate-500 dark:[&_li]:marker:text-slate-500/80 ' +
   '[&_li]:pl-1 [&_ul_ul]:my-2 [&_ol_ol]:my-2 ' +
-  '[&_h1]:mb-2 [&_h1]:mt-[1.35em] [&_h1]:text-[1.25em] [&_h1]:font-semibold [&_h1]:tracking-[-0.01em] [&_h1]:leading-snug [&_h1]:text-slate-900 dark:[&_h1]:text-slate-50 [&_h1]:first:mt-0 ' +
-  '[&_h2]:mb-1.5 [&_h2]:mt-[1.15em] [&_h2]:text-[1.125em] [&_h2]:font-semibold [&_h2]:tracking-[-0.008em] [&_h2]:leading-snug [&_h2]:text-slate-900 dark:[&_h2]:text-slate-100 [&_h2]:first:mt-0 ' +
-  '[&_h3]:mb-1.5 [&_h3]:mt-[1em] [&_h3]:text-[1.0625em] [&_h3]:font-semibold [&_h3]:tracking-tight [&_h3]:leading-snug [&_h3]:text-slate-900 dark:[&_h3]:text-slate-200 [&_h3]:first:mt-0 ' +
   '[&_blockquote]:my-[0.85em] [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300/90 [&_blockquote]:pl-4 [&_blockquote]:text-slate-700 dark:[&_blockquote]:border-white/[0.12] dark:[&_blockquote]:text-slate-400/95 ' +
   '[&_code]:rounded-md [&_code]:bg-slate-200/60 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.9em] [&_code]:font-medium [&_code]:text-slate-800 dark:[&_code]:bg-white/[0.08] dark:[&_code]:text-slate-200/95 ' +
   '[&_pre]:my-[0.85em] [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-slate-200/80 [&_pre]:bg-slate-100/80 [&_pre]:p-4 [&_pre]:text-[11px] [&_pre]:leading-relaxed [&_pre]:text-slate-800 dark:[&_pre]:border-white/[0.06] dark:[&_pre]:bg-[#12131a] dark:[&_pre]:text-slate-300/95 ' +
@@ -51,7 +51,9 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
   const lineFocus = useSettingsStore((s) => s.lineFocus)
   const compactMode = useSettingsStore((s) => s.compactMode)
   const distractionFree = useSettingsStore((s) => s.distractionFree)
-  const setDistractionFree = useSettingsStore((s) => s.setDistractionFree)
+  const setDistractionFreeWithTransition = useSettingsStore(
+    (s) => s.setDistractionFreeWithTransition
+  )
 
   const focusToken = useUiStore((s) => s.focusToken)
 
@@ -97,6 +99,20 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     editor.setEditable(currentNoteId != null)
   }, [editor, currentNoteId])
 
+  // Auto-focus editor in Electron when note loads (fixes "can't type" until click)
+  useEffect(() => {
+    if (!editor?.isEditable || !note) return
+    const isElectron =
+      typeof window !== 'undefined' && !!(window as Window & { __NOTES_DESKTOP_SHELL__?: boolean }).__NOTES_DESKTOP_SHELL__
+    if (!isElectron) return
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        editor.chain().focus('end').run()
+      })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [editor, note?.id])
+
   useEffect(() => {
     if (!editor) return
     editor.setOptions({
@@ -125,7 +141,36 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
       typeof n.content === 'string' && n.content.trim() !== ''
         ? n.content
         : '<p></p>'
-    const html = raw
+    let html: string
+    if (n.editorMode === 'latex') {
+      const noteIdAtStart = n.id
+      latexMarkdownToHtml(raw)
+        .then((out) => {
+          if (useAppStore.getState().currentNoteId !== noteIdAtStart) return
+          if (editor.getHTML() === out) return
+          try {
+            editor.commands.setContent(out, { emitUpdate: false })
+            lastSnapRef.current = editor.getHTML()
+          } catch (err) {
+            console.warn('[RichTextNoteEditor] setContent failed', err)
+            editor.commands.setContent('<p></p>', { emitUpdate: false })
+            if (useAppStore.getState().currentNoteId === noteIdAtStart) {
+              updateCurrentNoteContent('<p></p>')
+            }
+          }
+        })
+        .catch(() => {
+          if (useAppStore.getState().currentNoteId === noteIdAtStart) {
+            editor.commands.setContent('<p></p>', { emitUpdate: false })
+          }
+        })
+      return
+    }
+    try {
+      html = transformBlockHeadingsToInline(raw)
+    } catch {
+      html = '<p></p>'
+    }
     const current = editor.getHTML()
     if (current === html) return
     try {
@@ -141,7 +186,7 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
       }
     }
     lastSnapRef.current = editor.getHTML()
-  }, [editor, currentNoteId, note?.content, updateCurrentNoteContent])
+  }, [editor, currentNoteId, note?.content, note?.editorMode, updateCurrentNoteContent])
 
   useEffect(() => {
     if (!editor) return
@@ -194,6 +239,20 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
       if (id) setCurrentNoteId(id)
     },
     [ensureNoteForWikiTitle, setCurrentNoteId]
+  )
+
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number
+    y: number
+  } | null>(null)
+
+  const onContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!editor?.isEditable) return
+      e.preventDefault()
+      setContextMenuPos({ x: e.clientX, y: e.clientY })
+    },
+    [editor]
   )
 
   const onEditorCanvasMouseDown = useCallback(
@@ -262,43 +321,15 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className={cn('mx-auto w-full min-w-0 shrink-0 pt-3', maxW, padX)}>
-        <div
-          className={cn(
-            'rounded-[10px] border border-[color:var(--app-sidebar-border)] bg-[var(--app-toolbar-surface)]',
-            'px-1.5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.42)]',
-            'dark:border-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
-          )}
-        >
-          {editor ? (
-            <EditorToolbar
-              editor={editor}
-              rightSlot={
-                <button
-                  type="button"
-                  title="Distraction-free mode"
-                  aria-pressed={distractionFree}
-                  onClick={() => setDistractionFree(!distractionFree)}
-                  className={cn(
-                    'rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 transition-colors duration-100',
-                    'hover:bg-slate-200/45 hover:text-slate-900',
-                    'active:bg-slate-200/60',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/25',
-                    'dark:text-slate-400 dark:hover:bg-white/[0.07] dark:hover:text-slate-100',
-                    'dark:active:bg-white/[0.09] dark:focus-visible:ring-sky-400/20',
-                    distractionFree &&
-                      'bg-slate-200/45 text-sky-800 dark:bg-white/[0.08] dark:text-sky-300/95'
-                  )}
-                >
-                  Focus
-                </button>
-              }
-            />
-          ) : (
-            <div className="py-0.5 text-[11px] text-slate-400 dark:text-slate-500/90">
-              Loading toolbar…
-            </div>
-          )}
-        </div>
+        {editor ? (
+          <EditorMinibar
+            editor={editor}
+            distractionFree={distractionFree}
+            onToggleDistractionFree={() =>
+              setDistractionFreeWithTransition(!distractionFree)
+            }
+          />
+        ) : null}
       </div>
 
       <div
@@ -320,6 +351,7 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
               className="flex min-h-0 min-w-0 flex-1 flex-col pt-3"
               onMouseDown={onEditorCanvasMouseDown}
               onClick={onWikiClick}
+              onContextMenu={onContextMenu}
             >
               <EditorContent
                 editor={editor}
@@ -333,6 +365,15 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
           )}
         </div>
       </div>
+
+      {contextMenuPos && editor ? (
+        <EditorContextMenu
+          editor={editor}
+          x={contextMenuPos.x}
+          y={contextMenuPos.y}
+          onClose={() => setContextMenuPos(null)}
+        />
+      ) : null}
     </div>
   )
 }
