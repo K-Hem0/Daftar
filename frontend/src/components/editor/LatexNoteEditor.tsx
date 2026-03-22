@@ -157,7 +157,7 @@ export function LatexNoteEditor({ noteId }: LatexNoteEditorProps) {
         </div>
 
         {showPreview ? (
-          <div className="content-fade-in latex-preview-panel pt-2 pb-16">
+          <div className="content-fade-in latex-preview-panel pt-4 pb-24">
             <LatexMathPreview source={note.content ?? ''} />
           </div>
         ) : (

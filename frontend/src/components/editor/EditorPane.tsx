@@ -3,6 +3,7 @@ import { useAppStore } from '../../store'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { cn } from '../../lib/cn'
 import { shortcutNewNote, shortcutTemplatePicker } from '../../lib/platformKeys'
+import { LatexNoteEditor } from './LatexNoteEditor'
 import { RichTextNoteEditor } from './RichTextNoteEditor'
 
 export function EditorPane() {
@@ -74,12 +75,12 @@ export function EditorPane() {
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div
         className={cn(
-          'editor-note-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden',
+          'editor-note-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden',
           padX,
           padB
         )}
       >
-        <div className={cn('mx-auto w-full', maxW, padT)}>
+        <div className={cn('mx-auto w-full shrink-0', maxW, padT)}>
           <label className="sr-only" htmlFor="note-title">
             Note title
           </label>
@@ -147,7 +148,13 @@ export function EditorPane() {
           </div>
         </div>
 
-        <RichTextNoteEditor noteId={currentNote.id} />
+        <div className="min-h-[480px] flex-1 shrink-0">
+          {currentNote.editorMode === 'latex' ? (
+            <LatexNoteEditor noteId={currentNote.id} />
+          ) : (
+            <RichTextNoteEditor noteId={currentNote.id} />
+          )}
+        </div>
       </div>
     </div>
   )

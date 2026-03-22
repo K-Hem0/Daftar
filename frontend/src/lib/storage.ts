@@ -1,6 +1,7 @@
 import type { EditorMode, Note, NoteVersion, Reference } from '../types'
 import { normalizeNoteForApp } from './noteNormalization'
 import { normalizePersistedNote } from './noteMigration'
+import { SEED_NOTES } from './seedNotes'
 import {
   LEGACY_NOTES_KEY,
   LEGACY_STORAGE_KEY,
@@ -136,12 +137,23 @@ export function loadPersistedState(): {
     try {
       const parsed: unknown = JSON.parse(raw)
       if (isPersistedV1(parsed)) {
+        const notes = parsed.notes.map((n) =>
+          normalizeNoteForApp(normalizePersistedNote(n))
+        )
+        // If user has no notes (e.g. reset), merge seed notes
+        const finalNotes =
+          notes.length === 0
+            ? SEED_NOTES.map((n) =>
+                normalizeNoteForApp(normalizePersistedNote(n))
+              )
+            : notes
         return {
-          notes: parsed.notes.map((n) =>
-            normalizeNoteForApp(normalizePersistedNote(n))
-          ),
+          notes: finalNotes,
           versionsByNoteId: parsed.versionsByNoteId,
-          currentNoteId: parsed.currentNoteId,
+          currentNoteId:
+            notes.length > 0
+              ? parsed.currentNoteId
+              : finalNotes[0]?.id ?? null,
           referencesByNoteId: parsed.referencesByNoteId ?? {},
         }
       }
@@ -161,7 +173,16 @@ export function loadPersistedState(): {
     }
   }
 
-  return { notes: [], versionsByNoteId: {}, referencesByNoteId: {} }
+  // First-time user: load seed notes
+  const seedNotes = SEED_NOTES.map((n) =>
+    normalizeNoteForApp(normalizePersistedNote(n))
+  )
+  return {
+    notes: seedNotes,
+    versionsByNoteId: {},
+    currentNoteId: seedNotes[0]?.id ?? null,
+    referencesByNoteId: {},
+  }
 }
 
 export function savePersistedState(state: {

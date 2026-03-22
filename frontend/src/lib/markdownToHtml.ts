@@ -28,7 +28,7 @@ function rehypeHeadingsToInlineSpan() {
   }
 }
 
-/** Rehype plugin: strip margin from .katex-display (runs after rehype-katex) */
+/** Rehype plugin: strip default KaTeX margin so CSS can control spacing in .latex-math-preview */
 function rehypeKatexNoMargin() {
   return (tree: Root) => {
     visit(tree, 'element', (node: Element) => {
@@ -43,10 +43,7 @@ function rehypeKatexNoMargin() {
         classList.includes('math-display')
       if (hasMathDisplay) {
         node.properties = node.properties ?? {}
-        const prev = (node.properties.style as string) ?? ''
-        node.properties.style = prev
-          ? `${prev};margin:0!important`
-          : 'margin:0!important'
+        /* Don't add inline margin — let .latex-math-preview .katex-display CSS set it */
       }
     })
   }

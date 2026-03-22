@@ -67,6 +67,7 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
 
   const lastSnapRef = useRef<string>('')
   const lastFocusTokenRef = useRef(0)
+  const contentLoadedForNoteRef = useRef<string | null>(null)
   const editor = useEditor(
     {
       extensions,
@@ -78,6 +79,8 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
         },
       },
       onUpdate: ({ editor: ed }) => {
+        const curId = useAppStore.getState().currentNoteId
+        if (curId == null || contentLoadedForNoteRef.current !== curId) return
         updateCurrentNoteContent(ed.getHTML())
         onEditorModelUpdated()
       },
@@ -152,6 +155,7 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     if (id == null) {
       editor.commands.setContent('', { emitUpdate: false })
       lastSnapRef.current = ''
+      contentLoadedForNoteRef.current = null
       return
     }
     const n = latestNotes.find((x) => x.id === id)
@@ -170,17 +174,19 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
           try {
             editor.commands.setContent(out, { emitUpdate: false })
             lastSnapRef.current = editor.getHTML()
+            contentLoadedForNoteRef.current = noteIdAtStart
+            setContentLoadFailed(false)
           } catch (err) {
-            console.warn('[RichTextNoteEditor] setContent failed', err)
+            console.warn('[RichTextNoteEditor] setContent failed (latex)', err)
             editor.commands.setContent('<p></p>', { emitUpdate: false })
-            if (useAppStore.getState().currentNoteId === noteIdAtStart) {
-              updateCurrentNoteContent('<p></p>')
-            }
+            setContentLoadFailed(true)
+            // Do NOT overwrite store
           }
         })
         .catch(() => {
           if (useAppStore.getState().currentNoteId === noteIdAtStart) {
             editor.commands.setContent('<p></p>', { emitUpdate: false })
+            setContentLoadFailed(true)
           }
         })
       return
@@ -194,18 +200,24 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     if (current === html) return
     try {
       editor.commands.setContent(html, { emitUpdate: false })
+      lastSnapRef.current = editor.getHTML()
+      contentLoadedForNoteRef.current = n.id
+      setContentLoadFailed(false)
     } catch (err) {
       console.warn(
-        '[RichTextNoteEditor] setContent failed; using empty paragraph',
+        '[RichTextNoteEditor] setContent failed; using fallback view',
         err
       )
       editor.commands.setContent('<p></p>', { emitUpdate: false })
-      if (useAppStore.getState().currentNoteId === n.id) {
-        updateCurrentNoteContent('<p></p>')
-      }
+      setContentLoadFailed(true)
+      // Do NOT overwrite store — note content is correct; editor failed to parse
     }
-    lastSnapRef.current = editor.getHTML()
   }, [editor, currentNoteId, note?.content, note?.editorMode, updateCurrentNoteContent])
+
+  useEffect(() => {
+    setContentLoadFailed(false)
+    contentLoadedForNoteRef.current = null
+  }, [noteId])
 
   useEffect(() => {
     if (!editor) return
@@ -228,6 +240,7 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     x: number
     y: number
   } | null>(null)
+  const [contentLoadFailed, setContentLoadFailed] = useState(false)
 
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -334,10 +347,30 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
               onMouseDown={onEditorCanvasMouseDown}
               onContextMenu={onContextMenu}
             >
-              <EditorContent
-                editor={editor}
-                className="flex min-h-0 min-w-0 flex-1 flex-col [&_.ProseMirror]:flex-1"
-              />
+              {contentLoadFailed && note.content.trim().length > 0 ? (
+                <div
+                  className={cn(
+                    'notes-editor min-h-[400px] flex-1 px-0 py-1',
+                    EDITOR_BODY_BASE
+                  )}
+                  dangerouslySetInnerHTML={{
+                    __html: (() => {
+                      try {
+                        return stripWikiLinks(
+                          transformBlockHeadingsToInline(note.content)
+                        )
+                      } catch {
+                        return note.content
+                      }
+                    })(),
+                  }}
+                />
+              ) : (
+                <EditorContent
+                  editor={editor}
+                  className="flex min-h-[400px] min-w-0 flex-1 flex-col [&_.ProseMirror]:min-h-[400px] [&_.ProseMirror]:flex-1"
+                />
+              )}
             </div>
           ) : (
             <div className="py-10 text-sm text-slate-500 dark:text-slate-500/90">
