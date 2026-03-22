@@ -30,6 +30,7 @@ export function AppShell({ left, editor, right }: AppShellProps) {
   const distractionFree = useSettingsStore((s) => s.distractionFree)
   const leftCollapsed = useSettingsStore((s) => s.leftSidebarCollapsed)
   const rightCollapsed = useSettingsStore((s) => s.rightSidebarCollapsed)
+  const colorScheme = useSettingsStore((s) => s.colorScheme)
   const setRightCollapsed = useSettingsStore((s) => s.setRightSidebarCollapsed)
   const leftPaneWidthPx = useSettingsStore((s) => s.leftPaneWidthPx)
   const rightPaneWidthPx = useSettingsStore((s) => s.rightPaneWidthPx)
@@ -272,9 +273,8 @@ export function AppShell({ left, editor, right }: AppShellProps) {
               useSettingsStore.getState().setDistractionFree(false)
             }
             className={cn(
-              'rounded-lg px-3 py-1.5 text-[12px] font-medium',
-              'text-slate-600 transition',
-              'hover:bg-slate-200/60 hover:text-slate-900',
+              'rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors duration-150',
+              'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900',
               'dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-slate-100',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/25 dark:focus-visible:ring-sky-400/20'
             )}
@@ -299,16 +299,17 @@ export function AppShell({ left, editor, right }: AppShellProps) {
             <LeftIconRail />
             <aside
               className={cn(
-                'relative flex shrink-0 flex-col overflow-hidden',
+                'relative flex shrink-0 flex-col overflow-hidden transition-[width] duration-200 ease-out',
                 'border-r border-[color:var(--app-sidebar-border)] bg-[var(--app-sidebar)]',
                 'shadow-[1px_0_0_rgba(15,23,42,0.03)]',
                 'dark:shadow-[1px_0_0_rgba(255,255,255,0.02)]',
-                leftCollapsed ? 'w-0 border-transparent' : ''
+                leftCollapsed ? 'w-0 border-transparent' : '',
+                dragging === 'left' && '!transition-none'
               )}
               style={
                 leftCollapsed
                   ? undefined
-                  : { width: leftPaneWidthPx, transition: 'none' }
+                  : { width: leftPaneWidthPx }
               }
               aria-hidden={leftCollapsed}
             >
@@ -316,6 +317,25 @@ export function AppShell({ left, editor, right }: AppShellProps) {
                 {left}
               </div>
             </aside>
+
+            {!leftCollapsed && colorScheme === 'wildwest' && (
+              <div
+                className="pointer-events-none absolute bottom-0 z-[60] flex origin-bottom-left items-end justify-start"
+                style={{
+                  left: RAIL_WIDTH_PX,
+                  transform: 'translate(5%, 0)',
+                }}
+                aria-hidden
+              >
+                <img
+                  src="/cowboy.png"
+                  alt=""
+                  width={192}
+                  height={160}
+                  className="h-[160px] w-auto opacity-55 dark:opacity-45"
+                />
+              </div>
+            )}
 
             {!leftCollapsed ? (
               <ResizeDivider
@@ -341,7 +361,7 @@ export function AppShell({ left, editor, right }: AppShellProps) {
                     'absolute right-0 top-1/2 z-20 -translate-y-1/2',
                     'flex h-14 w-6 items-center justify-center rounded-l-lg border border-r-0',
                     'border-[color:var(--app-sidebar-border)] bg-[var(--app-sidebar)]/95 shadow-sm',
-                    'text-slate-500 transition hover:bg-slate-200/50 hover:text-slate-800',
+                    'text-slate-500 transition-colors duration-150 hover:bg-slate-200/50 hover:text-slate-800',
                     'dark:text-slate-500 dark:hover:bg-white/[0.06] dark:hover:text-slate-200',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/25 dark:focus-visible:ring-sky-400/20'
                   )}
@@ -364,16 +384,17 @@ export function AppShell({ left, editor, right }: AppShellProps) {
 
             <aside
               className={cn(
-                'relative flex min-h-0 min-w-0 shrink-0 flex-col overflow-hidden',
+                'relative flex min-h-0 min-w-0 shrink-0 flex-col overflow-hidden transition-[width] duration-200 ease-out',
                 'border-l border-[color:var(--app-sidebar-border)] bg-[var(--app-sidebar)]',
                 'shadow-[-1px_0_0_rgba(15,23,42,0.03)]',
                 'dark:shadow-[-1px_0_0_rgba(255,255,255,0.02)]',
-                rightCollapsed ? 'w-0 border-transparent shadow-none' : ''
+                rightCollapsed ? 'w-0 border-transparent shadow-none' : '',
+                dragging === 'right' && '!transition-none'
               )}
               style={
                 rightCollapsed
                   ? undefined
-                  : { width: rightPaneWidthPx, transition: 'none' }
+                  : { width: rightPaneWidthPx }
               }
               aria-hidden={rightCollapsed}
             >
@@ -381,6 +402,22 @@ export function AppShell({ left, editor, right }: AppShellProps) {
                 {right}
               </div>
             </aside>
+
+            {!rightCollapsed && colorScheme === 'wildwest' && (
+              <div
+                className="pointer-events-none absolute bottom-0 right-0 z-[60] flex origin-bottom-right items-end justify-end"
+                style={{ transform: 'translate(-25%, 0)' }}
+                aria-hidden
+              >
+                <img
+                  src="/cactus.png"
+                  alt=""
+                  width={72}
+                  height={96}
+                  className="h-[96px] w-auto opacity-55 dark:opacity-45"
+                />
+              </div>
+            )}
           </>
         ) : (
           <main

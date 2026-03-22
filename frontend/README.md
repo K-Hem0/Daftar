@@ -2,9 +2,9 @@
 
 ## Scholarly Notes — app setup
 
-- **Run:** from this folder, `npm install` then `npm run dev` (Vite + React + TypeScript + Tailwind v4).
+- **Run (web):** `npm install` then `npm run dev` (Vite + React + TypeScript + Tailwind v4).
+- **Run (desktop):** `npm run electron:dev` — starts the Vite dev server and launches the app in Electron. Use `npm run electron:build` to build installers (Windows NSIS, macOS DMG, Linux AppImage).
 - **Data:** notes and version snapshots persist in `localStorage` under `scholarly-notes-v1` (see `src/lib/schema.ts`). The storage layer is isolated so it can be swapped for IndexedDB, SQLite, or a file-backed backend later.
-- **Desktop packaging:** the UI is a normal web app with no Electron/Tauri wiring yet. A future desktop shell can load the same bundle (`npm run build` → `dist/`) in a webview or embedder; keep native menus, paths, and IPC in that layer and pass file paths or DB handles into the existing storage abstraction.
 
 ---
 

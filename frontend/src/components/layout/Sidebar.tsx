@@ -1,6 +1,5 @@
 import { LiteratureTabPlaceholder } from '../sidebar/LiteratureTabPlaceholder'
 import { ToolsTabPlaceholder } from '../sidebar/ToolsTabPlaceholder'
-import { BacklinksPanel } from '../sidebar/BacklinksPanel'
 import { VersionHistoryPanel } from '../sidebar/VersionHistoryPanel'
 import { useAppStore } from '../../store'
 import type { SidebarTab } from '../../types'
@@ -10,7 +9,6 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 const tabs: { id: SidebarTab; label: string }[] = [
   { id: 'literature', label: 'Literature' },
   { id: 'tools', label: 'Tools' },
-  { id: 'backlinks', label: 'Backlinks' },
   { id: 'history', label: 'History' },
 ]
 
@@ -45,7 +43,7 @@ export function Sidebar() {
                 aria-controls={`sidebar-panel-${id}`}
                 onClick={() => setActiveTab(id)}
                 className={cn(
-                  'rounded-md px-2 py-1 text-[11px] font-medium transition',
+                  'rounded-md px-2 py-1 text-[11px] font-medium transition-colors duration-150',
                   selected
                     ? 'bg-slate-200/70 text-slate-900 dark:bg-white/[0.06] dark:text-slate-200'
                     : 'text-slate-500 hover:bg-slate-200/40 hover:text-slate-800 dark:text-slate-600 dark:hover:bg-white/[0.04] dark:hover:text-slate-300'
@@ -60,7 +58,7 @@ export function Sidebar() {
           type="button"
           onClick={() => setRightCollapsed(true)}
           className={cn(
-            'mt-0.5 shrink-0 rounded-md p-1 text-slate-400 transition',
+            'mt-0.5 shrink-0 rounded-md p-1 text-slate-400 transition-colors duration-150',
             'hover:bg-slate-200/50 hover:text-slate-700',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/25',
             'dark:text-slate-600 dark:hover:bg-white/[0.06] dark:hover:text-slate-300',
@@ -72,7 +70,7 @@ export function Sidebar() {
           <PanelRightCollapseIcon />
         </button>
       </div>
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[calc(3rem+env(safe-area-inset-bottom,0px))]">
+      <div className="scroll-smooth min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[calc(3rem+env(safe-area-inset-bottom,0px))]">
         <div
           id="sidebar-panel-literature"
           role="tabpanel"
@@ -88,14 +86,6 @@ export function Sidebar() {
           hidden={activeTab !== 'tools'}
         >
           <ToolsTabPlaceholder />
-        </div>
-        <div
-          id="sidebar-panel-backlinks"
-          role="tabpanel"
-          aria-labelledby="sidebar-tab-backlinks"
-          hidden={activeTab !== 'backlinks'}
-        >
-          <BacklinksPanel />
         </div>
         <div
           id="sidebar-panel-history"

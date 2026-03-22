@@ -87,7 +87,7 @@ export function VersionPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="modal-backdrop-enter fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="presentation"
     >
       <button
@@ -102,7 +102,7 @@ export function VersionPreviewModal({
         aria-labelledby={titleId}
         aria-describedby={descId}
         className={cn(
-          'relative z-[101] flex max-h-[min(92dvh,880px)] w-full max-w-[960px] flex-col overflow-hidden rounded-2xl border',
+          'modal-panel-enter relative z-[101] flex max-h-[min(92dvh,880px)] w-full max-w-[960px] flex-col overflow-hidden rounded-2xl border',
           'border-slate-200/80 bg-[var(--app-main)] shadow-2xl shadow-slate-900/10',
           'dark:border-white/[0.08] dark:shadow-black/40'
         )}
@@ -118,7 +118,7 @@ export function VersionPreviewModal({
           </p>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="scroll-smooth min-h-0 flex-1 overflow-y-auto">
           <div className="grid gap-0 border-b border-slate-200/40 dark:border-white/[0.06] md:grid-cols-2">
             <div className="border-b border-slate-200/40 dark:border-white/[0.06] md:border-b-0 md:border-r">
               <div className="bg-slate-100/50 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.08em] text-slate-500 dark:bg-white/[0.03] dark:text-slate-500/90">

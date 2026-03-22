@@ -2,8 +2,8 @@ import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useAppStore } from '../../store/useAppStore'
 import {
-  exportStateJson,
-  parseImportedStateJson,
+  exportStateMarkdown,
+  parseImportedStateMarkdown,
   savePersistedState,
 } from '../../lib/storage'
 import { STORAGE_ROOT_KEY } from '../../lib/schema'
@@ -13,23 +13,23 @@ import type {
   ColorSchemeId,
   EditorMaxWidth,
   NoteSort,
-  NoteTemplateId,
   ThemePreference,
 } from '../../types'
-import { ALL_TEMPLATE_IDS, TEMPLATE_LABELS } from '../../lib/templates'
 import { ShortcutsList } from '../shortcuts/ShortcutsList'
 import { isApplePlatform, modSymbol } from '../../lib/platformKeys'
 
 export function SettingsModal() {
   const open = useSettingsStore((s) => s.settingsOpen)
   const setOpen = useSettingsStore((s) => s.setSettingsOpen)
+  const colorScheme = useSettingsStore((s) => s.colorScheme)
   const titleId = useId()
+  const isWildWest = colorScheme === 'wildwest'
 
   if (!open) return null
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/25 px-4 py-10 backdrop-blur-[2px] dark:bg-black/50"
+      className="modal-backdrop-enter fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/25 px-4 py-10 backdrop-blur-[2px] dark:bg-black/50"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -41,11 +41,20 @@ export function SettingsModal() {
         onClick={() => setOpen(false)}
       />
       <div
+        data-theme={isWildWest ? 'wildwest' : undefined}
         className={cn(
-          'relative z-10 mt-0 w-full max-w-lg rounded-2xl border border-slate-200/70',
-          'bg-[#fbfaf7] p-6 shadow-[0_24px_80px_-20px_rgba(15,23,42,0.18)]',
-          'dark:border-white/[0.06] dark:bg-[#15161d]',
-          'dark:shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)]'
+          'modal-panel-enter relative z-10 mt-0 w-full max-w-lg rounded-2xl border p-6',
+          !isWildWest && [
+            'border-slate-200/70 bg-[#fbfaf7]',
+            'shadow-[0_24px_80px_-20px_rgba(15,23,42,0.18)]',
+            'dark:border-white/[0.06] dark:bg-[#15161d]',
+            'dark:shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)]',
+          ],
+          isWildWest && [
+            'border-amber-900/30 bg-[#faf5ed] shadow-[0_24px_80px_-20px_rgba(101,67,33,0.25)]',
+            'dark:border-amber-800/25 dark:bg-[#1f1915]',
+            'dark:shadow-[0_24px_80px_-20px_rgba(0,0,0,0.7)]',
+          ]
         )}
       >
         <div className="mb-6 flex items-start justify-between gap-4">
@@ -59,7 +68,7 @@ export function SettingsModal() {
             type="button"
             onClick={() => setOpen(false)}
             className={cn(
-              'rounded-lg px-2 py-1 text-[13px] text-slate-500',
+              'rounded-lg px-2 py-1 text-[13px] text-slate-500 transition-colors duration-150',
               'hover:bg-slate-200/60 hover:text-slate-800',
               'dark:hover:bg-white/[0.06] dark:hover:text-slate-200'
             )}
@@ -68,13 +77,14 @@ export function SettingsModal() {
           </button>
         </div>
 
-        <div className="max-h-[min(70dvh,560px)] space-y-8 overflow-y-auto pr-1">
+        <div className="scroll-smooth max-h-[min(70dvh,560px)] space-y-8 overflow-y-auto pr-1">
           <AppearanceSection />
           <EditorSection />
           <NotesSection />
           <KeyboardShortcutsSection />
           <AdvancedSection />
         </div>
+
       </div>
     </div>
   )
@@ -153,6 +163,7 @@ function AppearanceSection() {
               { value: 'indigo', label: 'Indigo' },
               { value: 'forest', label: 'Forest' },
               { value: 'rose', label: 'Rose' },
+              { value: 'wildwest', label: 'Wild West' },
             ]}
             ariaLabel="Color scheme"
             variant="settings"
@@ -195,8 +206,6 @@ function EditorSection() {
   const setLineFocus = useSettingsStore((s) => s.setLineFocus)
   const distractionFree = useSettingsStore((s) => s.distractionFree)
   const setDf = useSettingsStore((s) => s.setDistractionFree)
-  const defaultTemplate = useSettingsStore((s) => s.defaultTemplate)
-  const setTpl = useSettingsStore((s) => s.setDefaultTemplate)
 
   return (
     <section className="space-y-4">
@@ -220,22 +229,6 @@ function EditorSection() {
             pressed={distractionFree}
             onPressedChange={setDf}
             ariaLabel="Distraction-free mode"
-          />
-        </Row>
-        <Row
-          label="Preferred template"
-          description="Shown in settings and as a saved preference. New notes from the sidebar still start blank unless you pick a template from the menu."
-        >
-          <SelectMenu
-            value={defaultTemplate}
-            onChange={(v) => setTpl(v as NoteTemplateId)}
-            options={ALL_TEMPLATE_IDS.map((id) => ({
-              value: id,
-              label: TEMPLATE_LABELS[id],
-            }))}
-            ariaLabel="Preferred template"
-            variant="settings"
-            searchable
           />
         </Row>
       </div>
@@ -308,15 +301,15 @@ function AdvancedSection() {
   const [resetBusy, setResetBusy] = useState(false)
 
   const onExport = useCallback(() => {
-    const json = exportStateJson({ notes, versionsByNoteId, currentNoteId })
-    const blob = new Blob([json], { type: 'application/json' })
+    const md = exportStateMarkdown({ notes, currentNoteId })
+    const blob = new Blob([md], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `scholarly-notes-export-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `scholarly-notes-export-${new Date().toISOString().slice(0, 10)}.md`
     a.click()
     URL.revokeObjectURL(url)
-  }, [notes, versionsByNoteId, currentNoteId])
+  }, [notes, currentNoteId])
 
   const onImportFile: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const file = e.target.files?.[0]
@@ -324,9 +317,9 @@ function AdvancedSection() {
     const reader = new FileReader()
     reader.onload = () => {
       const text = String(reader.result ?? '')
-      const parsed = parseImportedStateJson(text)
+      const parsed = parseImportedStateMarkdown(text)
       if (parsed) {
-        importState(parsed.notes, parsed.versionsByNoteId, parsed.currentNoteId)
+        importState(parsed.notes, {}, parsed.currentNoteId)
         const s = useAppStore.getState()
         savePersistedState({
           notes: s.notes,
@@ -375,20 +368,20 @@ function AdvancedSection() {
       <div className="space-y-4 rounded-xl border border-slate-200/60 bg-white/50 p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
         <Row
           label="Export notes"
-          description="Download JSON including version snapshots."
+          description="Download markdown (.md) with all notes."
         >
           <button type="button" onClick={onExport} className={btnSecondary}>
-            Export JSON
+            Export .md
           </button>
         </Row>
         <Row
           label="Import notes"
-          description="Replace local data with a JSON file."
+          description="Replace local data with a markdown (.md) file."
         >
           <input
             ref={fileRef}
             type="file"
-            accept="application/json,.json"
+            accept=".md,text/markdown"
             className="hidden"
             onChange={onImportFile}
           />
@@ -397,7 +390,7 @@ function AdvancedSection() {
             onClick={() => fileRef.current?.click()}
             className={btnSecondary}
           >
-            Import JSON…
+            Import .md
           </button>
         </Row>
         <Row

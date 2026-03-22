@@ -3,7 +3,6 @@ import { useAppStore } from '../../store'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { cn } from '../../lib/cn'
 import { shortcutNewNote, shortcutTemplatePicker } from '../../lib/platformKeys'
-import { RichTextNoteEditor } from './RichTextNoteEditor'
 import { LatexNoteEditor } from './LatexNoteEditor'
 
 export function EditorPane() {
@@ -32,9 +31,11 @@ export function EditorPane() {
   }, [notes])
 
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
 
   const padX = compactMode ? 'px-6' : 'px-8 sm:px-12'
   const padT = compactMode ? 'pt-8 sm:pt-10' : 'pt-10 sm:pt-12'
+  const padB = compactMode ? 'pb-20' : 'pb-32'
 
   const maxW =
     editorMaxWidth === 'narrow'
@@ -65,16 +66,20 @@ export function EditorPane() {
     typeof currentNote.folder === 'string' ? currentNote.folder : ''
   const tagsStr = tags.join(', ')
   const metaClass =
-    'w-full border-0 bg-transparent px-0 py-0.5 text-[12px] leading-snug text-slate-700/90 placeholder:text-slate-400/50 outline-none transition-[background,color] duration-100 ' +
-    'rounded-sm hover:bg-slate-100/30 focus:bg-slate-100/35 focus:outline-none focus:ring-0 ' +
-    'dark:text-slate-300/93 dark:placeholder:text-slate-600/60 dark:hover:bg-white/[0.03] dark:focus:bg-white/[0.05]'
-
-  const editorMode = currentNote.editorMode ?? 'rich'
+    'w-full border-0 bg-transparent px-0 py-0.5 text-[12px] leading-snug text-slate-700/90 placeholder:text-slate-400/50 outline-none transition-colors duration-150 ' +
+    'rounded-sm focus:outline-none focus:ring-0 ' +
+    'dark:text-slate-300/93 dark:placeholder:text-slate-600/60'
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className={cn('shrink-0', padT, padX)}>
-        <div className={cn('mx-auto w-full', maxW)}>
+      <div
+        className={cn(
+          'editor-note-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden',
+          padX,
+          padB
+        )}
+      >
+        <div className={cn('mx-auto w-full', maxW, padT)}>
           <label className="sr-only" htmlFor="note-title">
             Note title
           </label>
@@ -85,7 +90,7 @@ export function EditorPane() {
             value={currentNote.title ?? ''}
             onChange={(e) => updateCurrentNoteTitle(e.target.value)}
             placeholder="Untitled"
-            className="w-full border-0 bg-transparent text-[1.875rem] font-semibold leading-[1.15] tracking-[-0.035em] text-slate-900 placeholder:text-slate-400/75 focus:outline-none focus:ring-0 dark:text-slate-50 dark:placeholder:text-slate-600/75 sm:text-[2rem]"
+            className="w-full border-0 bg-transparent text-[1.875rem] font-semibold leading-[1.15] tracking-[-0.035em] text-slate-900 transition-colors duration-150 placeholder:text-slate-400/75 focus:outline-none focus:ring-0 dark:text-slate-50 dark:placeholder:text-slate-600/75 sm:text-[2rem]"
           />
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[minmax(0,1fr)_9.5rem] sm:items-end">
             <div className="min-w-0">
@@ -119,13 +124,19 @@ export function EditorPane() {
                 Folder
               </label>
               <input
+                ref={folderInputRef}
                 id="note-folder"
                 type="text"
                 value={folder}
-                onChange={(e) => updateCurrentNoteFolder(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value
+                  updateCurrentNoteFolder(v)
+                  if (folders.includes(v.trim())) folderInputRef.current?.blur()
+                }}
                 placeholder="Inbox"
                 list={folderListId}
-                className={metaClass}
+                autoComplete="off"
+                className={cn(metaClass, 'note-folder-input')}
               />
               <datalist id={folderListId}>
                 {folders.map((f) => (
@@ -135,13 +146,9 @@ export function EditorPane() {
             </div>
           </div>
         </div>
-      </div>
 
-      {editorMode === 'latex' ? (
         <LatexNoteEditor noteId={currentNote.id} />
-      ) : (
-        <RichTextNoteEditor noteId={currentNote.id} />
-      )}
+      </div>
     </div>
   )
 }

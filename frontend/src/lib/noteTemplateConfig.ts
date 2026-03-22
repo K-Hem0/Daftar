@@ -1,14 +1,8 @@
 import type { EditorMode, NoteTemplateId } from '../types'
-import { LATEX_RESEARCH_PAPER_SKELETON } from './latexPaperTemplates'
 
 export type TemplateCategoryId = 'core' | 'research' | 'writing'
 
-/** Subtypes for the single `research-paper` template id (more LaTeX kinds can extend this pattern). */
-export type ResearchPaperVariant = 'standard' | 'latex'
-
-export type NoteTemplateOptions = {
-  researchPaperVariant?: ResearchPaperVariant
-}
+export type NoteTemplateOptions = Record<string, never>
 
 export type NoteTemplatePayload = {
   title: string
@@ -20,88 +14,32 @@ export type NoteTemplatePayload = {
   tags: string[]
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
 function formatLongDate(d: Date): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'long' }).format(d)
 }
 
-/** Shared HTML fragments — TipTap rich-text (StarterKit headings, lists, hr, blockquote). */
-function richDailyLectureBody(dateLine: string): string {
+/** Markdown templates for notes (supports LaTeX: $...$, $$...$$). */
+function mdDailyLectureBody(dateLine: string): string {
   return (
-    '<h2>Session details</h2>' +
-    `<p><strong>Date</strong> — ${escapeHtml(dateLine)}</p>` +
-    '<p><strong>Course</strong> — </p>' +
-    '<p><strong>Topic</strong> — </p>' +
-    '<hr />' +
-    '<h2>Key Ideas</h2>' +
-    '<ul><li></li></ul>' +
-    '<h2>Examples</h2>' +
-    '<p></p>' +
-    '<h2>Questions</h2>' +
-    '<ul><li></li></ul>' +
-    '<h2>Summary</h2>' +
-    '<p></p>'
+    `## Session details\n\n**Date** — ${dateLine}\n\n**Course** — \n\n**Topic** — \n\n---\n\n` +
+    `## Key Ideas\n\n- \n\n## Examples\n\n\n\n## Questions\n\n- \n\n## Summary\n\n`
   )
 }
 
-function richResearchPaperBody(): string {
+function mdResearchPaperBody(): string {
   return (
-    '<h1>Provisional title</h1>' +
-    '<p><em>One-sentence summary of the paper’s central claim.</em></p>' +
-    '<h2>Topic</h2><p></p>' +
-    '<h2>Research Question</h2><p></p>' +
-    '<h2>Thesis</h2><p></p>' +
-    '<h2>Introduction</h2><p></p>' +
-    '<h2>Main Argument</h2><p></p>' +
-    '<h2>Evidence</h2><p></p>' +
-    '<h2>Counterargument</h2><p></p>' +
-    '<h2>Conclusion</h2><p></p>' +
-    '<h2>Sources</h2><ul><li></li></ul>'
+    `# Provisional title\n\n*One-sentence summary of the paper's central claim.*\n\n` +
+    `## Topic\n\n\n\n## Research Question\n\n\n\n## Thesis\n\n\n\n## Introduction\n\n\n\n` +
+    `## Main Argument\n\n\n\n## Evidence\n\n\n\n## Counterargument\n\n\n\n## Conclusion\n\n\n\n## Sources\n\n- `
   )
 }
 
-function richBlogPostBody(dateLine: string): string {
+function mdBlogPostBody(dateLine: string): string {
   return (
-    '<blockquote><p><em>Add a compelling subtitle for readers…</em></p></blockquote>' +
-    '<p><strong>Author</strong> — </p>' +
-    `<p><strong>Date</strong> — ${escapeHtml(dateLine)}</p>` +
-    '<p><strong>Tags</strong> — </p>' +
-    '<hr />' +
-    '<h2>Hook</h2><p></p>' +
-    '<h2>Main Point</h2><p></p>' +
-    '<h2>Supporting Sections</h2>' +
-    '<h3>First angle</h3><p></p>' +
-    '<h3>Second angle</h3><p></p>' +
-    '<h3>Third angle</h3><p></p>' +
-    '<h2>Closing</h2><p></p>'
+    `> *Add a compelling subtitle for readers…*\n\n` +
+    `**Author** — \n\n**Date** — ${dateLine}\n\n**Tags** — \n\n---\n\n` +
+    `## Hook\n\n\n\n## Main Point\n\n\n\n## Supporting Sections\n\n### First angle\n\n\n\n### Second angle\n\n\n\n### Third angle\n\n\n\n## Closing\n\n`
   )
-}
-
-export function buildResearchPaperPayload(
-  variant: ResearchPaperVariant
-): NoteTemplatePayload {
-  if (variant === 'standard') {
-    return {
-      title: 'Research Paper Draft',
-      editorMode: 'rich',
-      body: richResearchPaperBody(),
-      folder: 'Research',
-      tags: ['research', 'paper'],
-    }
-  }
-  return {
-    title: 'Research paper (LaTeX)',
-    editorMode: 'latex',
-    body: LATEX_RESEARCH_PAPER_SKELETON,
-    folder: 'Research',
-    tags: ['latex', 'paper'],
-  }
 }
 
 export type NoteTemplateDefinition = {
@@ -126,8 +64,8 @@ export const NOTE_TEMPLATE_DEFINITIONS: NoteTemplateDefinition[] = [
     tags: [],
     build: () => ({
       title: 'Untitled',
-      editorMode: 'rich',
-      body: '<p></p>',
+      editorMode: 'latex',
+      body: '',
     }),
   },
   {
@@ -142,8 +80,8 @@ export const NOTE_TEMPLATE_DEFINITIONS: NoteTemplateDefinition[] = [
       const today = formatLongDate(new Date())
       return {
         title: `Lecture Note — ${today}`,
-        editorMode: 'rich',
-        body: richDailyLectureBody(today),
+        editorMode: 'latex',
+        body: mdDailyLectureBody(today),
       }
     },
   },
@@ -152,13 +90,14 @@ export const NOTE_TEMPLATE_DEFINITIONS: NoteTemplateDefinition[] = [
     label: 'Research paper',
     shortLabel: 'Research',
     category: 'research',
-    hint: 'Formal outline (H1 + sections) or LaTeX skeleton',
+    hint: 'Formal outline with headings and sections',
     folder: 'Research',
     tags: ['research', 'paper'],
-    build: () => {
-      const p = buildResearchPaperPayload('standard')
-      return { title: p.title, body: p.body, editorMode: p.editorMode }
-    },
+    build: () => ({
+      title: 'Research Paper Draft',
+      editorMode: 'latex',
+      body: mdResearchPaperBody(),
+    }),
   },
   {
     id: 'blog-post',
@@ -172,8 +111,8 @@ export const NOTE_TEMPLATE_DEFINITIONS: NoteTemplateDefinition[] = [
       const today = formatLongDate(new Date())
       return {
         title: 'New Blog Post',
-        editorMode: 'rich',
-        body: richBlogPostBody(today),
+        editorMode: 'latex',
+        body: mdBlogPostBody(today),
       }
     },
   },
@@ -185,12 +124,8 @@ const defById = new Map(
 
 export function getNoteTemplatePayload(
   id: NoteTemplateId,
-  options?: NoteTemplateOptions
+  _options?: NoteTemplateOptions
 ): NoteTemplatePayload {
-  if (id === 'research-paper') {
-    const variant = options?.researchPaperVariant ?? 'standard'
-    return buildResearchPaperPayload(variant)
-  }
   const def = defById.get(id) ?? defById.get('blank')!
   const { title, body, editorMode } = def.build()
   return {

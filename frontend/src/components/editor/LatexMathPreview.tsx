@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
+import MarkdownIt from 'markdown-it'
 import { cn } from '../../lib/cn'
 import renderMathInElement from 'katex/contrib/auto-render'
+
+const md = new MarkdownIt({ html: true }) // allows <u> for underline
 
 type LatexMathPreviewProps = {
   source: string
@@ -8,8 +11,7 @@ type LatexMathPreviewProps = {
 }
 
 /**
- * Renders the full source with KaTeX auto-render for `$…$`, `$$…$$`, `\(…\)`, `\[…\]`.
- * Full-document PDF preview is not implemented; this focuses on math and readable structure.
+ * Renders markdown + LaTeX. Converts markdown to HTML, then KaTeX renders math in $…$, $$…$$, etc.
  */
 export function LatexMathPreview({ source, className }: LatexMathPreviewProps) {
   const ref = useRef<HTMLDivElement>(null)
@@ -17,8 +19,8 @@ export function LatexMathPreview({ source, className }: LatexMathPreviewProps) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    el.textContent = source
     try {
+      el.innerHTML = md.render(source)
       renderMathInElement(el, {
         delimiters: [
           { left: '$$', right: '$$', display: true },
@@ -30,7 +32,7 @@ export function LatexMathPreview({ source, className }: LatexMathPreviewProps) {
         strict: 'ignore',
       })
     } catch {
-      /* KaTeX may throw on unusual input; keep source visible */
+      el.textContent = source
     }
   }, [source])
 
@@ -38,8 +40,9 @@ export function LatexMathPreview({ source, className }: LatexMathPreviewProps) {
     <div
       ref={ref}
       className={cn(
-        'latex-math-preview whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-slate-700',
-        'dark:text-slate-300/95',
+        'latex-math-preview',
+        '[&_code]:rounded [&_code]:bg-slate-200/60 [&_code]:px-1 [&_code]:text-[0.9em] dark:[&_code]:bg-white/10',
+        'text-[14px] leading-relaxed text-slate-800 dark:text-slate-300',
         className
       )}
     />

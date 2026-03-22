@@ -8,7 +8,7 @@ import {
 } from './noteTemplateConfig'
 
 export { getNoteTemplatePayload }
-export type { NoteTemplateOptions, NoteTemplatePayload, ResearchPaperVariant } from './noteTemplateConfig'
+export type { NoteTemplateOptions, NoteTemplatePayload } from './noteTemplateConfig'
 
 export type { TemplateCategoryId } from './noteTemplateConfig'
 

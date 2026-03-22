@@ -14,7 +14,6 @@ export {
   TEMPLATE_REGISTRY,
   type NoteTemplateOptions,
   type NoteTemplatePayload,
-  type ResearchPaperVariant,
   type TemplateCategoryId,
   type TemplateMeta,
 } from './templateRegistry'

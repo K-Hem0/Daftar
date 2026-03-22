@@ -33,7 +33,7 @@ export function ResizeDivider({
       <span
         className={cn(
           'pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2',
-          'bg-slate-200/55 transition-colors dark:bg-white/[0.08]',
+          'bg-slate-200/55 transition-colors duration-150 dark:bg-white/[0.08]',
           'group-hover:bg-slate-300/90 dark:group-hover:bg-white/[0.14]',
           active && 'bg-sky-400/80 dark:bg-sky-500/50'
         )}

@@ -1,4 +1,4 @@
-export type SidebarTab = 'literature' | 'tools' | 'backlinks' | 'history'
+export type SidebarTab = 'literature' | 'tools' | 'history'
 
 export type NoteVersion = {
   id: string
@@ -56,3 +56,4 @@ export type ColorSchemeId =
   | 'indigo'
   | 'forest'
   | 'rose'
+  | 'wildwest'

@@ -9,6 +9,7 @@ const VALID: ColorSchemeId[] = [
   'indigo',
   'forest',
   'rose',
+  'wildwest',
 ]
 
 export function isColorSchemeId(v: unknown): v is ColorSchemeId {

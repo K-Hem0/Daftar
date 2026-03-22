@@ -11,7 +11,7 @@ export const toolbarMenuPanelClass = cn(
 
 export function toolbarMenuItemClass(active: boolean, highlighted: boolean) {
   return cn(
-    'flex w-full cursor-pointer items-center rounded-sm px-2 py-0.5 text-left text-[12px] leading-tight outline-none transition-colors duration-100',
+    'flex w-full cursor-pointer items-center rounded-sm px-2 py-0.5 text-left text-[12px] leading-tight outline-none transition-colors duration-150',
     'min-h-[26px]',
     'focus-visible:ring-1 focus-visible:ring-slate-400/40 dark:focus-visible:ring-slate-500/35',
     highlighted &&

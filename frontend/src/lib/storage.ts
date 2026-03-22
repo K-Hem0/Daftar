@@ -130,6 +130,103 @@ export function loadNotes(): Note[] {
   return loadPersistedState().notes
 }
 
+const NOTE_SEPARATOR = '\n\n<!-- NOTE -->\n\n'
+
+function escapeYamlValue(s: string): string {
+  if (/[\n:]/.test(s) || s.startsWith(' ') || s.startsWith('#')) {
+    return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`
+  }
+  return s
+}
+
+export function exportStateMarkdown(state: {
+  notes: Note[]
+  currentNoteId?: string | null
+}): string {
+  const blocks: string[] = []
+  for (const note of state.notes) {
+    const frontmatter = [
+      `title: ${escapeYamlValue(note.title)}`,
+      `folder: ${escapeYamlValue(note.folder)}`,
+      `tags: ${escapeYamlValue(note.tags.join(', '))}`,
+      `id: ${note.id}`,
+      `createdAt: ${note.createdAt}`,
+      `updatedAt: ${note.updatedAt}`,
+      ...(note.editorMode ? [`editorMode: ${note.editorMode}`] : []),
+    ].join('\n')
+    blocks.push(`---\n${frontmatter}\n---\n\n${note.content || ''}`)
+  }
+  return blocks.join(NOTE_SEPARATOR)
+}
+
+function parseFrontmatterBlock(block: string): { meta: Record<string, string>; content: string } | null {
+  const match = block.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
+  if (!match) return null
+  const [, yaml, content] = match
+  const meta: Record<string, string> = {}
+  for (const line of yaml.split(/\r?\n/)) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx < 0) continue
+    const key = line.slice(0, colonIdx).trim()
+    let val = line.slice(colonIdx + 1).trim()
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1).replace(/\\"/g, '"').replace(/\\n/g, '\n')
+    }
+    meta[key] = val
+  }
+  return { meta, content: content || '' }
+}
+
+export function parseImportedStateMarkdown(
+  raw: string
+): {
+  notes: Note[]
+  currentNoteId?: string | null
+} | null {
+  const blocks = raw.split(NOTE_SEPARATOR)
+  const notes: Note[] = []
+  const now = new Date().toISOString()
+  for (const block of blocks) {
+    const parsed = parseFrontmatterBlock(block.trim())
+    if (!parsed) {
+      const t = block.trim()
+      if (t) {
+        notes.push({
+          id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+          title: 'Untitled',
+          content: t,
+          tags: [],
+          folder: '',
+          editorMode: 'latex',
+          createdAt: now,
+          updatedAt: now,
+        })
+      }
+      continue
+    }
+    const { meta, content } = parsed
+    const title = meta.title ?? 'Untitled'
+    const id = meta.id ?? `note-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+    const folder = meta.folder ?? ''
+    const tags = meta.tags
+      ? meta.tags.split(',').map((t) => t.trim()).filter(Boolean)
+      : []
+    notes.push({
+      id,
+      title,
+      content,
+      tags,
+      folder,
+      editorMode: (meta.editorMode === 'latex' ? 'latex' : 'rich') as EditorMode,
+      createdAt: meta.createdAt ?? now,
+      updatedAt: meta.updatedAt ?? now,
+    })
+  }
+  if (notes.length === 0) return null
+  return { notes, currentNoteId: notes[0]?.id ?? null }
+}
+
+/** @deprecated Use exportStateMarkdown */
 export function exportStateJson(state: {
   notes: Note[]
   versionsByNoteId: Record<string, NoteVersion[]>
@@ -147,6 +244,7 @@ export function exportStateJson(state: {
   )
 }
 
+/** @deprecated Use parseImportedStateMarkdown */
 export function parseImportedStateJson(
   raw: string
 ): {

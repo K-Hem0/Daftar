@@ -56,11 +56,11 @@ export function VersionHistoryPanel() {
 
   return (
     <>
-      <ul className="max-h-[min(50dvh,360px)] space-y-1 overflow-y-auto pr-0.5" role="list">
+      <ul className="scroll-smooth max-h-[min(50dvh,360px)] space-y-1 overflow-y-auto pr-0.5" role="list">
         {versions.map((v) => (
           <li
             key={v.id}
-            className="rounded-lg border border-slate-200/40 bg-white/30 p-2 dark:border-white/[0.05] dark:bg-white/[0.02]"
+            className="rounded-lg border border-slate-200/40 bg-white/30 p-2 transition-colors duration-150 hover:bg-white/50 dark:border-white/[0.05] dark:bg-white/[0.02] dark:hover:bg-white/[0.04]"
           >
             <div className="text-[11px] text-slate-500 dark:text-slate-600/90">
               {formatWhen(v.createdAt)}
@@ -70,7 +70,7 @@ export function VersionHistoryPanel() {
                 type="button"
                 onClick={() => setPreviewVersion(v)}
                 className={cn(
-                  'rounded-md px-2 py-1 text-[12px] font-medium text-slate-700 transition',
+                  'rounded-md px-2 py-1 text-[12px] font-medium text-slate-700 transition-colors duration-150',
                   'hover:bg-slate-200/50 dark:text-slate-300/95 dark:hover:bg-white/[0.05]'
                 )}
               >
@@ -80,7 +80,7 @@ export function VersionHistoryPanel() {
                 type="button"
                 onClick={() => setPreviewVersion(v)}
                 className={cn(
-                  'rounded-md px-2 py-1 text-[12px] font-medium text-sky-700 transition',
+                  'rounded-md px-2 py-1 text-[12px] font-medium text-sky-700 transition-colors duration-150',
                   'hover:bg-sky-500/10 dark:text-sky-400/90 dark:hover:bg-sky-500/10'
                 )}
               >

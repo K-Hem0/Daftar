@@ -3,7 +3,7 @@ import { cn } from '../../lib/cn'
 import { EditorHelpPopover } from '../editor/EditorHelpPopover'
 
 const railBtn = cn(
-  'flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px] transition',
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px] transition-colors duration-150',
   'text-slate-500 hover:bg-slate-200/65 hover:text-slate-800',
   'active:bg-slate-200/75 dark:active:bg-white/[0.09]',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/25',
