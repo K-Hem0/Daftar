@@ -58,6 +58,12 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     [notes, noteId]
   )
 
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number
+    y: number
+  } | null>(null)
+  const [contentLoadFailed, setContentLoadFailed] = useState(false)
+
   const extensions = useMemo(() => createEditorExtensions(), [])
 
   const { onEditorModelUpdated } = useNoteHistorySnapshot({
@@ -151,6 +157,12 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
 
   useEffect(() => {
     if (!editor) return
+    queueMicrotask(() => setContentLoadFailed(false))
+    contentLoadedForNoteRef.current = null
+  }, [noteId])
+
+  useEffect(() => {
+    if (!editor) return
     const { notes: latestNotes, currentNoteId: id } = useAppStore.getState()
     if (id == null) {
       editor.commands.setContent('', { emitUpdate: false })
@@ -202,22 +214,17 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
       editor.commands.setContent(html, { emitUpdate: false })
       lastSnapRef.current = editor.getHTML()
       contentLoadedForNoteRef.current = n.id
-      setContentLoadFailed(false)
+      queueMicrotask(() => setContentLoadFailed(false))
     } catch (err) {
       console.warn(
         '[RichTextNoteEditor] setContent failed; using fallback view',
         err
       )
       editor.commands.setContent('<p></p>', { emitUpdate: false })
-      setContentLoadFailed(true)
+      queueMicrotask(() => setContentLoadFailed(true))
       // Do NOT overwrite store — note content is correct; editor failed to parse
     }
   }, [editor, currentNoteId, note?.content, note?.editorMode, updateCurrentNoteContent])
-
-  useEffect(() => {
-    setContentLoadFailed(false)
-    contentLoadedForNoteRef.current = null
-  }, [noteId])
 
   useEffect(() => {
     if (!editor) return
@@ -235,12 +242,6 @@ export function RichTextNoteEditor({ noteId }: RichTextNoteEditorProps) {
     })
     return () => cancelAnimationFrame(id)
   }, [focusToken, editor])
-
-  const [contextMenuPos, setContextMenuPos] = useState<{
-    x: number
-    y: number
-  } | null>(null)
-  const [contentLoadFailed, setContentLoadFailed] = useState(false)
 
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {

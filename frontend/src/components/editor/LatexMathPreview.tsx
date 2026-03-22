@@ -18,7 +18,7 @@ export function LatexMathPreview({ source, className }: LatexMathPreviewProps) {
 
   useEffect(() => {
     let cancelled = false
-    setErr(false)
+    queueMicrotask(() => setErr(false))
     markdownToHtml(source)
       .then((h) => {
         if (!cancelled) setHtml(h)

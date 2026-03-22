@@ -1,81 +1,26 @@
-# React + TypeScript + Vite
+# Daftar — Frontend
 
-## Daftar — app setup
+React + TypeScript + Vite + Electron app. See the [root README](../README.md) for full documentation.
 
-- **Run (web):** `npm install` then `npm run dev` (Vite on **http://localhost:5932** + React + TypeScript + Tailwind v4). Literature search calls `/api/*`, proxied to the Semantic Scholar backend on port **8787**. From the **repo root**, use `npm install` + `npm run dev` to start **both** the backend and this frontend together.
-- **Run (desktop):** `npm run electron:dev` — starts the Vite dev server and launches the app in Electron. Use `npm run electron:build` to build installers (Windows NSIS, macOS DMG, Linux AppImage). For the Literature tab (paper search, recommendations), start the backend from the repo root: `npm run dev --prefix backend` (runs on port 8787).
-- **Data:** notes, version snapshots, and per-note saved literature references persist in `localStorage` under `daftar-v1` (see `src/lib/schema.ts`). The storage layer is isolated so it can be swapped for IndexedDB, SQLite, or a file-backed backend later.
+## Run
 
----
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- **Web:** `npm run dev` — Vite at http://localhost:5932. Literature APIs are proxied to the backend on port 8787.
+- **Desktop:** `npm run electron:dev` — Starts Vite and launches Electron. For the Literature tab, run the backend from the repo root: `npm run dev --prefix backend`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Build
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+npm run electron:build   # Build installers (NSIS, DMG, AppImage)
 ```
+
+## Stack
+
+- **Editor:** TipTap (rich text) + CodeMirror (LaTeX)
+- **Styling:** Tailwind v4
+- **State:** Zustand
+- **Storage:** localStorage (`daftar-v1`)

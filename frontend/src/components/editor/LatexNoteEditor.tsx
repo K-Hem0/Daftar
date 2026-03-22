@@ -117,6 +117,7 @@ export function LatexNoteEditor({ noteId }: LatexNoteEditorProps) {
 
   const padX = compactMode ? 'px-6' : 'px-8 sm:px-12'
   const maxW = maxWidthClass(editorMaxWidth)
+  const [showPreview, setShowPreview] = useState(false)
 
   if (!note) {
     return (
@@ -128,8 +129,6 @@ export function LatexNoteEditor({ noteId }: LatexNoteEditorProps) {
       </div>
     )
   }
-
-  const [showPreview, setShowPreview] = useState(false)
 
   return (
     <div

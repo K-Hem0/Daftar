@@ -84,7 +84,7 @@ export function TemplatePicker({
   }, [open])
 
   useEffect(() => {
-    if (!open) setQuery('')
+    if (!open) queueMicrotask(() => setQuery(''))
   }, [open])
 
   useEffect(() => {

@@ -12,7 +12,7 @@ export const SimpleInlineMathInputRule = Extension.create({
   addInputRules() {
     return [
       new InputRule({
-        find: /(^|[^\$])\$([^\$\d][^$]*?)\$(?!\d)/,
+        find: /(^|[^$])\$([^$\d][^$]*?)\$(?!\d)/,
         handler: ({ range, match, chain }) => {
           const latex = (match[2] ?? '').trim()
           if (!latex) return null

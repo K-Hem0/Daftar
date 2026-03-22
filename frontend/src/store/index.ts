@@ -6,4 +6,3 @@ export function noteIdForReferences(noteId: string | null): string {
 }
 export { useSettingsStore } from './useSettingsStore'
 export type { SettingsState } from './useSettingsStore'
-export { getInitialTheme } from './useThemeStore'

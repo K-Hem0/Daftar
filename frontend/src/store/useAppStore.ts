@@ -99,9 +99,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   addNote: (note) => {
     const raw = note ?? createEmptyNote('blank')
     const n = normalizeNoteForApp(raw)
-    if (import.meta.env.DEV) {
-      console.debug('[addNote] normalized payload', n)
-    }
     set((s) => ({
       notes: [...s.notes, n],
       currentNoteId: n.id,

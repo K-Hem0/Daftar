@@ -126,6 +126,7 @@ export function getNoteTemplatePayload(
   id: NoteTemplateId,
   _options?: NoteTemplateOptions
 ): NoteTemplatePayload {
+  void _options
   const def = defById.get(id) ?? defById.get('blank')!
   const { title, body, editorMode } = def.build()
   return {

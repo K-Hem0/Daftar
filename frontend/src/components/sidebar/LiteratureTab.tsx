@@ -198,7 +198,7 @@ function LiteratureDisclosure({
 }) {
   const [userOpen, setUserOpen] = useState<boolean | null>(null)
   useEffect(() => {
-    setUserOpen(null)
+    queueMicrotask(() => setUserOpen(null))
   }, [resetKey])
   const open = userOpen !== null ? userOpen : defaultOpen
 

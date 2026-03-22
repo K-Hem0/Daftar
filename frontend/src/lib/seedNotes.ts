@@ -175,7 +175,7 @@ git diff main..HEAD          # Compare branches
 <hr>
 <p><span class="heading heading-3" data-inline-heading="3">Regex cheatsheet</span></p>
 <ul>
-<li><p>\d digits, \w word chars</p></li>
+<li><p>\\d digits, \\w word chars</p></li>
 <li><p>.*? non-greedy match</p></li>
 <li><p>(?=...) positive lookahead</p></li>
 </ul>
