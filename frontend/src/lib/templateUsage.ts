@@ -1,7 +1,7 @@
 import type { NoteTemplateId } from '../types'
 import { isNoteTemplateId } from './templateRegistry'
 
-const STORAGE_KEY = 'scholarly-notes-template-usage-v1'
+const STORAGE_KEY = 'daftar-template-usage-v1'
 const MAX_RECENT = 5
 
 export type TemplateUsageState = {

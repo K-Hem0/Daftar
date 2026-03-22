@@ -24,7 +24,7 @@ export function LeftIconRail() {
         'shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]',
         'dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]'
       )}
-      aria-label="Workspace"
+      aria-label="Daftar"
     >
       <div className="flex flex-col items-center gap-0.5 px-1 pt-1.5">
         <button

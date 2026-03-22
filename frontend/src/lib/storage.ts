@@ -3,6 +3,7 @@ import { normalizeNoteForApp } from './noteNormalization'
 import { normalizePersistedNote } from './noteMigration'
 import {
   LEGACY_NOTES_KEY,
+  LEGACY_STORAGE_KEY,
   STORAGE_ROOT_KEY,
   type PersistedAppStateV1,
 } from './schema'
@@ -74,7 +75,29 @@ export function loadPersistedState(): {
   versionsByNoteId: Record<string, NoteVersion[]>
   currentNoteId?: string | null
 } {
-  const raw = localStorage.getItem(STORAGE_ROOT_KEY)
+  let raw = localStorage.getItem(STORAGE_ROOT_KEY)
+  if (raw == null) {
+    raw = localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (raw != null) {
+      try {
+        const parsed: unknown = JSON.parse(raw)
+        if (isPersistedV1(parsed)) {
+          const state = {
+            notes: parsed.notes.map((n) =>
+              normalizeNoteForApp(normalizePersistedNote(n))
+            ),
+            versionsByNoteId: parsed.versionsByNoteId,
+            currentNoteId: parsed.currentNoteId,
+          }
+          savePersistedState(state)
+          localStorage.removeItem(LEGACY_STORAGE_KEY)
+          return state
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+  }
   if (raw != null) {
     try {
       const parsed: unknown = JSON.parse(raw)

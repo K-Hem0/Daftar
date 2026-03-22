@@ -44,17 +44,10 @@ export function SettingsModal() {
         data-theme={isWildWest ? 'wildwest' : undefined}
         className={cn(
           'modal-panel-enter relative z-10 mt-0 w-full max-w-lg rounded-2xl border p-6',
-          !isWildWest && [
-            'border-slate-200/70 bg-[#fbfaf7]',
-            'shadow-[0_24px_80px_-20px_rgba(15,23,42,0.18)]',
-            'dark:border-white/[0.06] dark:bg-[#15161d]',
-            'dark:shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)]',
-          ],
-          isWildWest && [
-            'border-amber-900/30 bg-[#faf5ed] shadow-[0_24px_80px_-20px_rgba(101,67,33,0.25)]',
-            'dark:border-amber-800/25 dark:bg-[#1f1915]',
-            'dark:shadow-[0_24px_80px_-20px_rgba(0,0,0,0.7)]',
-          ]
+          !isWildWest &&
+            'border-slate-200/70 bg-[#fbfaf7] shadow-[0_24px_80px_-20px_rgba(15,23,42,0.18)] dark:border-white/[0.06] dark:bg-[#15161d] dark:shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)]',
+          isWildWest &&
+            'border-amber-900/30 bg-[#faf5ed] shadow-[0_24px_80px_-20px_rgba(101,67,33,0.25)] dark:border-amber-800/25 dark:bg-[#1f1915] dark:shadow-[0_24px_80px_-20px_rgba(0,0,0,0.7)]'
         )}
       >
         <div className="mb-6 flex items-start justify-between gap-4">
@@ -293,7 +286,6 @@ function NotesSection() {
 
 function AdvancedSection() {
   const notes = useAppStore((s) => s.notes)
-  const versionsByNoteId = useAppStore((s) => s.versionsByNoteId)
   const currentNoteId = useAppStore((s) => s.currentNoteId)
   const importState = useAppStore((s) => s.importState)
   const resetAll = useAppStore((s) => s.resetAll)
@@ -306,7 +298,7 @@ function AdvancedSection() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `scholarly-notes-export-${new Date().toISOString().slice(0, 10)}.md`
+    a.download = `daftar-export-${new Date().toISOString().slice(0, 10)}.md`
     a.click()
     URL.revokeObjectURL(url)
   }, [notes, currentNoteId])

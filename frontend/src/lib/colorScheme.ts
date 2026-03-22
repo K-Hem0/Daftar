@@ -25,7 +25,7 @@ export function applyColorScheme(scheme: ColorSchemeId) {
 export function readStoredColorScheme(): ColorSchemeId | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem('scholarly-notes-settings-v1')
+    const raw = localStorage.getItem('daftar-settings-v1')
     if (raw) {
       const j = JSON.parse(raw) as Record<string, unknown>
       if (isColorSchemeId(j.colorScheme)) return j.colorScheme

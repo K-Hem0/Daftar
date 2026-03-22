@@ -16,7 +16,7 @@ import {
   MIN_RIGHT_PANE_PX,
 } from '../lib/paneLayout'
 
-const SETTINGS_KEY = 'scholarly-notes-settings-v1'
+const SETTINGS_KEY = 'daftar-settings-v1'
 
 export type SettingsState = {
   themePreference: ThemePreference
@@ -87,15 +87,23 @@ const defaults: Omit<
   settingsOpen: false,
 }
 
+const LEGACY_SETTINGS_KEY = 'scholarly-notes-settings-v1'
+
 function loadSnapshot(): Partial<SettingsState> {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY)
-    if (raw) {
+  let raw = localStorage.getItem(SETTINGS_KEY)
+  const fromLegacy = !raw && (raw = localStorage.getItem(LEGACY_SETTINGS_KEY))
+  if (raw) {
+    try {
       const parsed = JSON.parse(raw) as Record<string, unknown>
-      return sanitizeSettings(parsed)
+      const result = sanitizeSettings(parsed)
+      if (fromLegacy) {
+        localStorage.setItem(SETTINGS_KEY, raw)
+        localStorage.removeItem(LEGACY_SETTINGS_KEY)
+      }
+      return result
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore */
   }
   const leg = localStorage.getItem('notes-app-theme')
   if (leg === 'light' || leg === 'dark') {

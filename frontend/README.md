@@ -1,10 +1,10 @@
 # React + TypeScript + Vite
 
-## Scholarly Notes — app setup
+## Daftar — app setup
 
 - **Run (web):** `npm install` then `npm run dev` (Vite + React + TypeScript + Tailwind v4).
 - **Run (desktop):** `npm run electron:dev` — starts the Vite dev server and launches the app in Electron. Use `npm run electron:build` to build installers (Windows NSIS, macOS DMG, Linux AppImage).
-- **Data:** notes and version snapshots persist in `localStorage` under `scholarly-notes-v1` (see `src/lib/schema.ts`). The storage layer is isolated so it can be swapped for IndexedDB, SQLite, or a file-backed backend later.
+- **Data:** notes and version snapshots persist in `localStorage` under `daftar-v1` (see `src/lib/schema.ts`). The storage layer is isolated so it can be swapped for IndexedDB, SQLite, or a file-backed backend later.
 
 ---
 

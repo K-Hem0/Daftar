@@ -25,7 +25,7 @@ const LEGACY_THEME_KEY = 'notes-app-theme'
 export function readStoredThemePreference(): ThemePreference | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem('scholarly-notes-settings-v1')
+    const raw = localStorage.getItem('daftar-settings-v1')
     if (raw) {
       const j = JSON.parse(raw) as { state?: { themePreference?: string } }
       const p = j.state?.themePreference

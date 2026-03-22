@@ -1,7 +1,9 @@
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
+const fs = require('fs')
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+const distPath = path.join(__dirname, '../dist/index.html')
+const isDev = !app.isPackaged && !fs.existsSync(distPath)
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -14,7 +16,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    title: 'Scholarly Notes',
+    title: 'Daftar',
     show: false,
   })
 
@@ -23,9 +25,10 @@ function createWindow() {
   })
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    const url = 'http://localhost:5932'
+    mainWindow.loadURL(url)
     mainWindow.webContents.on('did-fail-load', () => {
-      setTimeout(() => mainWindow.loadURL('http://localhost:5173'), 500)
+      setTimeout(() => mainWindow.loadURL('http://localhost:5932'), 500)
     })
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))

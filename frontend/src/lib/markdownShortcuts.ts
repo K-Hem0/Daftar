@@ -28,7 +28,6 @@ function insertHeading(level: 1 | 2 | 3) {
     const prefix = '#'.repeat(level) + ' '
     const isAlready = line.match(new RegExp(`^#{1,6}\\s`))
     let replacement: string
-    let newSelection: { from: number; to: number }
     if (isAlready) {
       replacement = line.replace(/^#{1,6}\s*/, prefix)
     } else {

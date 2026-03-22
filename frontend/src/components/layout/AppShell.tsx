@@ -447,7 +447,7 @@ function WorkspaceTopChrome() {
         'dark:shadow-[0_1px_0_rgba(0,0,0,0.45),0_12px_36px_-22px_rgba(0,0,0,0.55)]'
       )}
       role="banner"
-      aria-label="Workspace"
+      aria-label="Daftar"
     >
       <div
         className={cn(
@@ -465,7 +465,7 @@ function WorkspaceTopChrome() {
             'dark:text-slate-500/85'
           )}
         >
-          Workspace
+          Daftar
         </span>
       </div>
     </header>

@@ -2,8 +2,8 @@
  * Storage schema (v1) — persisted in localStorage today; swappable for IndexedDB/SQLite later.
  *
  * Keys:
- * - `scholarly-notes-v1` — root blob (see PersistedAppState)
- * - Legacy `notes` key is migrated once on load if present
+ * - `daftar-v1` — root blob (see PersistedAppState)
+ * - Legacy `notes` and `scholarly-notes-v1` migrated on load if present
  */
 
 import type { Note, NoteVersion } from '../types'
@@ -18,5 +18,6 @@ export type PersistedAppStateV1 = {
   currentNoteId?: string | null
 }
 
-export const STORAGE_ROOT_KEY = 'scholarly-notes-v1'
+export const STORAGE_ROOT_KEY = 'daftar-v1'
+export const LEGACY_STORAGE_KEY = 'scholarly-notes-v1'
 export const LEGACY_NOTES_KEY = 'notes'
