@@ -1,4 +1,4 @@
-export type SidebarTab = 'literature' | 'tools' | 'history'
+export type SidebarTab = 'explore' | 'search' | 'tools' | 'history'
 
 export type NoteVersion = {
   id: string

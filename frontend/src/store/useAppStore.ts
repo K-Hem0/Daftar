@@ -96,7 +96,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   notes: [],
   currentNoteId: null,
   referencesByNoteId: {},
-  activeSidebarTab: 'literature',
+  activeSidebarTab: 'explore',
   versionsByNoteId: {},
 
   addNote: (note) => {

@@ -1,10 +1,14 @@
 import {
   useCallback,
+  createContext,
+  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from 'react'
 import { noteIdForReferences, useAppStore } from '../../store'
 import { cn } from '../../lib/cn'
@@ -14,7 +18,7 @@ import {
   type GeminiNoteQueriesResponse,
   type GeminiPaperRelevanceResponse,
 } from '../../lib/geminiApi'
-import type { Reference } from '../../types'
+import type { Note, Reference } from '../../types'
 import {
   buildAugmentedSearchQuery,
   buildNoteRecommendationSearchQuery,
@@ -37,7 +41,7 @@ type PaperRelevanceCardState = {
   data: GeminiPaperRelevanceResponse | null
 }
 
-/** Disambiguates anonymous rows across Recommended / manual / Similar (same index+title otherwise collided). */
+/** Disambiguates anonymous rows across Recommended / Search results / Similar (same index+title otherwise collided). */
 type PaperRelevanceListId = 'rec' | 'res' | 'sim'
 
 function paperRelevanceStateKey(
@@ -52,7 +56,66 @@ function paperRelevanceStateKey(
   return `${list}:${listIndex}:${t}`
 }
 
-/** Section titles (manual results, Similar, Saved). */
+type LiteratureSidebarContextValue = {
+  scopeLabel: string
+  currentNoteId: string | null
+  savedIds: Set<string>
+  list: Reference[]
+  addReference: (noteId: string | null, reference: Reference) => void
+  removeReference: (noteId: string | null, referenceId: string) => void
+  literatureDisclosureResetKey: string
+  note: Note | undefined
+  noteMeaningfulForGemini: boolean
+  geminiQueries: GeminiNoteQueriesResponse | null
+  geminiQueriesLoading: boolean
+  geminiQueriesError: string | null
+  onGenerateGeminiQueries: () => void
+  noteRecommended: SemanticScholarPaper[]
+  noteRecLoading: boolean
+  noteRecError: string | null
+  noteRecSkipped: boolean
+  noteRecEmpty: boolean
+  recommendationQuery: string
+  recommendedDefaultOpen: boolean
+  similarSectionVisible: boolean
+  similarDefaultOpen: boolean
+  recs: SemanticScholarPaper[]
+  similarError: string | null
+  busySimilar: boolean
+  similarReturnedEmpty: boolean
+  onSimilar: (paperId: string) => void
+  explainRelevanceEnabled: boolean
+  paperRelevanceByKey: Record<string, PaperRelevanceCardState>
+  fetchPaperRelevance: (
+    paper: SemanticScholarPaper,
+    stateKey: string
+  ) => void
+  query: string
+  setQuery: Dispatch<SetStateAction<string>>
+  useNoteContext: boolean
+  setUseNoteContext: Dispatch<SetStateAction<boolean>>
+  effectiveQuery: string
+  onSearch: () => void
+  loading: boolean
+  searchError: string | null
+  results: SemanticScholarPaper[]
+  resultsSectionVisible: boolean
+  resultsDefaultOpen: boolean
+  savedDefaultOpen: boolean
+}
+
+const LiteratureSidebarContext =
+  createContext<LiteratureSidebarContextValue | null>(null)
+
+function useLiteratureSidebar() {
+  const v = useContext(LiteratureSidebarContext)
+  if (!v) {
+    throw new Error('useLiteratureSidebar requires LiteratureSidebarProvider')
+  }
+  return v
+}
+
+/** Section titles (Search results, Similar, Saved). */
 const sectionHeadingClass =
   'text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-500/90'
 
@@ -89,6 +152,32 @@ const disclosureSummaryClass = cn(
   'dark:focus-visible:ring-sky-400/25',
   '[&::-webkit-details-marker]:hidden'
 )
+
+function SavingReferencesScopeBanner({
+  scopeLabel,
+  hint,
+}: {
+  scopeLabel: string
+  hint?: string
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="rounded-xl border border-slate-200/55 bg-slate-50/40 px-3 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.02]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-500/90">
+          References for
+        </p>
+        <p className="mt-0.5 truncate text-[12px] font-medium text-slate-800 dark:text-slate-200/95">
+          {scopeLabel}
+        </p>
+      </div>
+      {hint ? (
+        <p className="px-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-600/90">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  )
+}
 
 function LiteratureDisclosure({
   headingId,
@@ -206,9 +295,9 @@ function PaperCard({
   onSimilar,
   busySimilar,
   recommendedTone = false,
-  explainRelevanceEnabled,
+  explainRelevanceEnabled = false,
   paperRelevance,
-  onExplainRelevance,
+  onExplainRelevance = () => {},
 }: {
   paper: SemanticScholarPaper
   savedIds: Set<string>
@@ -216,9 +305,9 @@ function PaperCard({
   onSimilar: (paperId: string) => void
   busySimilar: boolean
   recommendedTone?: boolean
-  explainRelevanceEnabled: boolean
-  paperRelevance: PaperRelevanceCardState | undefined
-  onExplainRelevance: () => void
+  explainRelevanceEnabled?: boolean
+  paperRelevance?: PaperRelevanceCardState | undefined
+  onExplainRelevance?: () => void
 }) {
   const [abstractOpen, setAbstractOpen] = useState(false)
   const ref = semanticScholarPaperToReference(paper)
@@ -424,7 +513,7 @@ function PaperCard({
   )
 }
 
-export function LiteratureTab() {
+export function LiteratureSidebarProvider({ children }: { children: ReactNode }) {
   const currentNoteId = useAppStore((s) => s.currentNoteId)
   const notes = useAppStore((s) => s.notes)
   const referencesByNoteId = useAppStore((s) => s.referencesByNoteId)
@@ -719,92 +808,125 @@ export function LiteratureTab() {
 
   const savedDefaultOpen = list.length > 0
 
+  const literatureSidebarValue: LiteratureSidebarContextValue = {
+    scopeLabel,
+    currentNoteId,
+    savedIds,
+    list,
+    addReference,
+    removeReference,
+    literatureDisclosureResetKey,
+    note,
+    noteMeaningfulForGemini,
+    geminiQueries,
+    geminiQueriesLoading,
+    geminiQueriesError,
+    onGenerateGeminiQueries,
+    noteRecommended,
+    noteRecLoading,
+    noteRecError,
+    noteRecSkipped,
+    noteRecEmpty,
+    recommendationQuery,
+    recommendedDefaultOpen,
+    similarSectionVisible,
+    similarDefaultOpen,
+    recs,
+    similarError,
+    busySimilar,
+    similarReturnedEmpty,
+    onSimilar,
+    explainRelevanceEnabled,
+    paperRelevanceByKey,
+    fetchPaperRelevance,
+    query,
+    setQuery,
+    useNoteContext,
+    setUseNoteContext,
+    effectiveQuery,
+    onSearch,
+    loading,
+    searchError,
+    results,
+    resultsSectionVisible,
+    resultsDefaultOpen,
+    savedDefaultOpen,
+  }
+
   return (
-    <div className="space-y-5 pt-1">
-      <div className="rounded-xl border border-slate-200/55 bg-slate-50/40 px-3 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.02]">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-500/90">
-          Saving references to
-        </p>
-        <p className="mt-0.5 truncate text-[12px] font-medium text-slate-800 dark:text-slate-200/95">
-          {scopeLabel}
-        </p>
-      </div>
+    <LiteratureSidebarContext.Provider value={literatureSidebarValue}>
+      {children}
+    </LiteratureSidebarContext.Provider>
+  )
+}
 
-      <section className="space-y-2">
-        <div>
-          <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-500/95">
-            Manual search
-          </label>
-          <p className="mt-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-600/90">
-            Type keywords, then press Search—nothing runs until you do.
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && void onSearch()}
-            placeholder="Keywords, title, author…"
-            className={cn(
-              'min-w-0 flex-1 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5 text-[12px]',
-              'text-slate-900 placeholder:text-slate-400',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/25',
-              'dark:border-white/[0.08] dark:bg-[#1a1b22] dark:text-slate-100 dark:placeholder:text-slate-600'
-            )}
-            aria-label="Manual literature search query"
-          />
-          <button
-            type="button"
-            onClick={() => void onSearch()}
-            disabled={loading || !effectiveQuery.trim()}
-            className={cn(
-              'shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-[12px] font-medium text-white',
-              'hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50',
-              'dark:bg-sky-600/90 dark:hover:bg-sky-500'
-            )}
-          >
-            {loading ? 'Searching…' : 'Search'}
-          </button>
-        </div>
-        <label className="flex cursor-pointer items-center gap-2 text-[11px] text-slate-600 dark:text-slate-500/90">
-          <input
-            type="checkbox"
-            checked={useNoteContext}
-            onChange={(e) => setUseNoteContext(e.target.checked)}
-            className="rounded border-slate-300 text-sky-600"
-          />
-          <span>
-            Blend open note into <span className="font-medium">this</span> search
-            only (title ≤{NOTE_CONTEXT_TITLE_WORDS} words, body ≤
-            {NOTE_CONTEXT_BODY_WORDS}). Does not affect Recommended below.
-          </span>
-        </label>
-        {searchError ? (
-          <p className={alertErrorClass} role="alert">
-            <span className="font-semibold">Search failed.</span>{' '}
-            {searchError}
-          </p>
-        ) : null}
-      </section>
+export function ExploreTab() {
+  const {
+    scopeLabel,
+    currentNoteId,
+    savedIds,
+    list,
+    addReference,
+    removeReference,
+    literatureDisclosureResetKey,
+    note,
+    noteMeaningfulForGemini,
+    geminiQueries,
+    geminiQueriesLoading,
+    geminiQueriesError,
+    onGenerateGeminiQueries,
+    noteRecommended,
+    noteRecLoading,
+    noteRecError,
+    noteRecSkipped,
+    noteRecEmpty,
+    recommendationQuery,
+    recommendedDefaultOpen,
+    similarSectionVisible,
+    similarDefaultOpen,
+    recs,
+    similarError,
+    busySimilar,
+    similarReturnedEmpty,
+    onSimilar,
+    explainRelevanceEnabled,
+    paperRelevanceByKey,
+    fetchPaperRelevance,
+    savedDefaultOpen,
+  } = useLiteratureSidebar()
 
-      <section
-        className={cn(
-          'space-y-2 rounded-xl border border-emerald-200/60 bg-emerald-50/30 px-3 py-2.5',
+  const geminiIdeasDefaultOpen =
+    geminiQueriesLoading ||
+    geminiQueriesError != null ||
+    geminiQueries != null
+
+  const geminiIdeasResetKey = `${literatureDisclosureResetKey}\0gq:${geminiQueriesLoading}:${Boolean(geminiQueriesError)}:${Boolean(geminiQueries)}`
+
+  return (
+    <div className="space-y-4 pt-1">
+      <SavingReferencesScopeBanner
+        scopeLabel={scopeLabel}
+        hint="Note-driven discovery. Keyword lookup lives on Search."
+      />
+
+      <LiteratureDisclosure
+        headingId="explore-gemini-queries-heading"
+        title="AI QUERY IDEAS"
+        titleClassName="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-800 dark:text-emerald-300/90"
+        resetKey={geminiIdeasResetKey}
+        defaultOpen={geminiIdeasDefaultOpen}
+        sectionClassName={cn(
+          'rounded-xl border border-emerald-200/60 bg-emerald-50/30 px-3 py-2.5',
           'dark:border-emerald-900/35 dark:bg-emerald-950/20'
         )}
-        aria-labelledby="literature-gemini-queries-heading"
+        contentDividerClassName="border-emerald-200/50 dark:border-emerald-900/30"
+        summaryDescription={
+          <p className="text-[10px] leading-snug text-emerald-800/80 dark:text-emerald-400/75">
+            Gemini from this note’s title and body—tap Generate when open (not
+            automatic).
+          </p>
+        }
       >
-        <h3
-          id="literature-gemini-queries-heading"
-          className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-800 dark:text-emerald-300/90"
-        >
-          AI query ideas
-        </h3>
-        <p className="text-[10px] leading-snug text-emerald-800/80 dark:text-emerald-400/75">
-          Backend Gemini from this note’s title and body. Tap the button when you
-          want suggestions—nothing runs automatically.
-        </p>
         <button
           type="button"
           onClick={() => void onGenerateGeminiQueries()}
@@ -893,7 +1015,7 @@ export function LiteratureTab() {
             </div>
           </div>
         ) : null}
-      </section>
+      </LiteratureDisclosure>
 
       <LiteratureDisclosure
         headingId="literature-note-recommended-heading"
@@ -908,8 +1030,8 @@ export function LiteratureTab() {
         contentDividerClassName="border-violet-200/50 dark:border-violet-900/35"
         summaryDescription={
           <p className="text-[10px] leading-snug text-violet-700/85 dark:text-violet-400/75">
-            Automatic from this note (debounced). Ignores the search field and the
-            blend checkbox above; not the same as Similar papers.
+            Debounced from this note. Ignores Search’s query/blend. Different from
+            Similar papers.
           </p>
         }
       >
@@ -969,37 +1091,6 @@ export function LiteratureTab() {
         )}
       </LiteratureDisclosure>
 
-      {resultsSectionVisible ? (
-        <LiteratureDisclosure
-          headingId="literature-manual-results-heading"
-          title="Manual search results"
-          titleClassName={sectionHeadingClass}
-          resetKey={literatureDisclosureResetKey}
-          defaultOpen={resultsDefaultOpen}
-          contentDividerClassName="border-slate-200/55 dark:border-white/[0.06]"
-        >
-          {results.length > 0 ? (
-            <div className="space-y-2">
-              {results.map((p, i) => (
-                <PaperCard
-                  key={p.paperId ?? `res-${i}-${p.title ?? ''}`}
-                  paper={p}
-                  savedIds={savedIds}
-                  onSave={(r) => addReference(currentNoteId, r)}
-                  onSimilar={onSimilar}
-                  busySimilar={busySimilar}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className={mutedLineClass}>
-              No matches for your manual query. Try other keywords or turn off
-              blending the open note.
-            </p>
-          )}
-        </LiteratureDisclosure>
-      ) : null}
-
       {similarSectionVisible ? (
         <LiteratureDisclosure
           headingId="literature-similar-heading"
@@ -1010,9 +1101,8 @@ export function LiteratureTab() {
           contentDividerClassName="border-slate-200/55 dark:border-white/[0.06]"
           summaryDescription={
             <p className="text-[10px] leading-snug text-slate-500 dark:text-slate-600/90">
-              Papers like the one you clicked{' '}
-              <span className="font-medium">Similar</span>
-              {' '}on—not from your note or the search box.
+              From <span className="font-medium">Similar</span> on a card—not from
+              the note body or Search keywords.
             </p>
           }
         >
@@ -1063,7 +1153,7 @@ export function LiteratureTab() {
             <span className="font-medium text-slate-600 dark:text-slate-500/95">
               No saved references for this note.
             </span>{' '}
-            Save from manual results, recommendations, or Similar.
+            Save from Search results, recommendations, or Similar.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -1119,6 +1209,144 @@ export function LiteratureTab() {
           </ul>
         )}
       </LiteratureDisclosure>
+    </div>
+  )
+}
+
+export function SearchTab() {
+  const {
+    scopeLabel,
+    query,
+    setQuery,
+    useNoteContext,
+    setUseNoteContext,
+    effectiveQuery,
+    onSearch,
+    loading,
+    searchError,
+    results,
+    resultsSectionVisible,
+    resultsDefaultOpen,
+    literatureDisclosureResetKey,
+    savedIds,
+    currentNoteId,
+    addReference,
+    onSimilar,
+    busySimilar,
+    explainRelevanceEnabled,
+    paperRelevanceByKey,
+    fetchPaperRelevance,
+  } = useLiteratureSidebar()
+
+  return (
+    <div className="space-y-4 pt-1">
+      <SavingReferencesScopeBanner
+        scopeLabel={scopeLabel}
+        hint="Direct paper lookup. AI ideas and auto-recs stay on Explore."
+      />
+
+      <section className="space-y-2.5">
+        <div>
+          <label
+            htmlFor="sidebar-paper-search-input"
+            className="block text-[11px] font-semibold text-slate-700 dark:text-slate-400/95"
+          >
+            Paper search
+          </label>
+          <p
+            id="sidebar-paper-search-hint"
+            className="mt-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-600/90"
+          >
+            Enter or click Search—queries Semantic Scholar when you run it.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            id="sidebar-paper-search-input"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && void onSearch()}
+            placeholder="Keywords, title, author…"
+            className={cn(
+              'min-w-0 flex-1 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5 text-[12px]',
+              'text-slate-900 placeholder:text-slate-400',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/25',
+              'dark:border-white/[0.08] dark:bg-[#1a1b22] dark:text-slate-100 dark:placeholder:text-slate-600'
+            )}
+            aria-describedby="sidebar-paper-search-hint"
+          />
+          <button
+            type="button"
+            onClick={() => void onSearch()}
+            disabled={loading || !effectiveQuery.trim()}
+            className={cn(
+              'shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-[12px] font-medium text-white',
+              'hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50',
+              'dark:bg-sky-600/90 dark:hover:bg-sky-500'
+            )}
+          >
+            {loading ? 'Searching…' : 'Search'}
+          </button>
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-[11px] text-slate-600 dark:text-slate-500/90">
+          <input
+            type="checkbox"
+            checked={useNoteContext}
+            onChange={(e) => setUseNoteContext(e.target.checked)}
+            className="rounded border-slate-300 text-sky-600"
+          />
+          <span>
+            Blend open note into <span className="font-medium">this</span> search
+            only (title ≤{NOTE_CONTEXT_TITLE_WORDS} words, body ≤
+            {NOTE_CONTEXT_BODY_WORDS}). Does not affect Recommended on the Explore
+            tab.
+          </span>
+        </label>
+        {searchError ? (
+          <p className={alertErrorClass} role="alert">
+            <span className="font-semibold">Search failed.</span>{' '}
+            {searchError}
+          </p>
+        ) : null}
+      </section>
+
+      {resultsSectionVisible ? (
+        <LiteratureDisclosure
+          headingId="search-paper-results-heading"
+          title="Search results"
+          titleClassName={sectionHeadingClass}
+          resetKey={literatureDisclosureResetKey}
+          defaultOpen={resultsDefaultOpen}
+          contentDividerClassName="border-slate-200/55 dark:border-white/[0.06]"
+        >
+          {results.length > 0 ? (
+            <div className="space-y-2">
+              {results.map((p, i) => {
+                const relKey = paperRelevanceStateKey('res', p, i)
+                return (
+                  <PaperCard
+                    key={p.paperId ?? `res-${i}-${p.title ?? ''}`}
+                    paper={p}
+                    savedIds={savedIds}
+                    onSave={(r) => addReference(currentNoteId, r)}
+                    onSimilar={onSimilar}
+                    busySimilar={busySimilar}
+                    explainRelevanceEnabled={explainRelevanceEnabled}
+                    paperRelevance={paperRelevanceByKey[relKey]}
+                    onExplainRelevance={() => void fetchPaperRelevance(p, relKey)}
+                  />
+                )
+              })}
+            </div>
+          ) : (
+            <p className={mutedLineClass}>
+              No matches for this search. Try other keywords or turn off blending
+              the open note.
+            </p>
+          )}
+        </LiteratureDisclosure>
+      ) : null}
     </div>
   )
 }

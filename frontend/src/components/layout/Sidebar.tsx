@@ -1,4 +1,8 @@
-import { LiteratureTab } from '../sidebar/LiteratureTab'
+import {
+  ExploreTab,
+  LiteratureSidebarProvider,
+  SearchTab,
+} from '../sidebar/LiteratureTab'
 import { ToolsTabPlaceholder } from '../sidebar/ToolsTabPlaceholder'
 import { VersionHistoryPanel } from '../sidebar/VersionHistoryPanel'
 import { useAppStore } from '../../store'
@@ -6,10 +10,23 @@ import type { SidebarTab } from '../../types'
 import { cn } from '../../lib/cn'
 import { useSettingsStore } from '../../store/useSettingsStore'
 
-const tabs: { id: SidebarTab; label: string }[] = [
-  { id: 'literature', label: 'Literature' },
-  { id: 'tools', label: 'Tools' },
-  { id: 'history', label: 'History' },
+const tabs: {
+  id: SidebarTab
+  label: string
+  title: string
+}[] = [
+  {
+    id: 'explore',
+    label: 'Explore',
+    title: 'AI ideas, recommendations, similar papers, and saved refs for this note',
+  },
+  {
+    id: 'search',
+    label: 'Search',
+    title: 'Look up papers by keyword (Semantic Scholar)',
+  },
+  { id: 'tools', label: 'Tools', title: 'Utilities for this workspace' },
+  { id: 'history', label: 'History', title: 'Version history for the open note' },
 ]
 
 export function Sidebar() {
@@ -29,9 +46,9 @@ export function Sidebar() {
         <div
           className="flex min-w-0 flex-1 flex-wrap gap-x-1 gap-y-1"
           role="tablist"
-          aria-label="Sidebar panels"
+          aria-label="Right sidebar tabs: Explore note-based papers and ideas, Search papers by keyword, Tools, and this note's version history"
         >
-          {tabs.map(({ id, label }) => {
+          {tabs.map(({ id, label, title }) => {
             const selected = activeTab === id
             return (
               <button
@@ -41,12 +58,13 @@ export function Sidebar() {
                 id={`sidebar-tab-${id}`}
                 aria-selected={selected}
                 aria-controls={`sidebar-panel-${id}`}
+                title={title}
                 onClick={() => setActiveTab(id)}
                 className={cn(
-                  'rounded-md px-2 py-1 text-[11px] font-medium transition-colors duration-150',
+                  'rounded-md px-2 py-1 text-[11px] transition-colors duration-150',
                   selected
-                    ? 'bg-slate-200/70 text-slate-900 dark:bg-white/[0.06] dark:text-slate-200'
-                    : 'text-slate-500 hover:bg-slate-200/40 hover:text-slate-800 dark:text-slate-600 dark:hover:bg-white/[0.04] dark:hover:text-slate-300'
+                    ? 'bg-slate-200/70 font-semibold text-slate-900 dark:bg-white/[0.06] dark:text-slate-200'
+                    : 'font-medium text-slate-500 hover:bg-slate-200/40 hover:text-slate-800 dark:text-slate-600 dark:hover:bg-white/[0.04] dark:hover:text-slate-300'
                 )}
               >
                 {label}
@@ -71,14 +89,24 @@ export function Sidebar() {
         </button>
       </div>
       <div className="scroll-smooth min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[calc(3rem+env(safe-area-inset-bottom,0px))]">
-        <div
-          id="sidebar-panel-literature"
-          role="tabpanel"
-          aria-labelledby="sidebar-tab-literature"
-          hidden={activeTab !== 'literature'}
-        >
-          <LiteratureTab />
-        </div>
+        <LiteratureSidebarProvider>
+          <div
+            id="sidebar-panel-explore"
+            role="tabpanel"
+            aria-labelledby="sidebar-tab-explore"
+            hidden={activeTab !== 'explore'}
+          >
+            <ExploreTab />
+          </div>
+          <div
+            id="sidebar-panel-search"
+            role="tabpanel"
+            aria-labelledby="sidebar-tab-search"
+            hidden={activeTab !== 'search'}
+          >
+            <SearchTab />
+          </div>
+        </LiteratureSidebarProvider>
         <div
           id="sidebar-panel-tools"
           role="tabpanel"
